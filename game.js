@@ -20,6 +20,7 @@ class Game {
         this.explosions = [];
         this.particles = [];
         this.isSoundOn = true;
+        this.gameLoopId = null;
         
         // Цвета фигур
         this.colors = [
@@ -42,6 +43,8 @@ class Game {
         this.loadHighScores();
         this.setupEventListeners();
         this.startGameLoop();
+        
+        console.log("Game initialized, state:", this.state);
     }
     
     resizeCanvas() {
@@ -51,6 +54,7 @@ class Game {
     }
     
     init() {
+        console.log("Initializing grid...");
         // Инициализация сетки
         this.grid = [];
         for (let row = 0; row < this.gridSize; row++) {
@@ -98,6 +102,7 @@ class Game {
                 };
             }
         }
+        console.log("Grid initialized with", this.gridSize, "x", this.gridSize, "gems");
     }
     
     loadHighScores() {
@@ -113,6 +118,7 @@ class Game {
                 {name: "Игрок 5", score: 600},
             ];
         }
+        console.log("Loaded high scores:", this.highScores.length);
     }
     
     saveHighScores() {
@@ -128,10 +134,16 @@ class Game {
     }
     
     setupEventListeners() {
+        console.log("Setting up event listeners...");
+        
         window.addEventListener('resize', () => this.resizeCanvas());
         
         // Клики по канвасу
-        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        this.canvas.addEventListener('click', (e) => {
+            console.log("Canvas clicked, state:", this.state);
+            this.handleCanvasClick(e);
+        });
+        
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
@@ -139,27 +151,71 @@ class Game {
         }, {passive: false});
         
         // Кнопки меню
-        document.getElementById('startBtn').addEventListener('click', () => this.startGame());
-        document.getElementById('scoresBtn').addEventListener('click', () => this.showScreen('SCORES'));
-        document.getElementById('instructionsBtn').addEventListener('click', () => this.showScreen('INSTRUCTIONS'));
+        document.getElementById('startBtn').addEventListener('click', () => {
+            console.log("Start button clicked");
+            this.startGame();
+        });
+        
+        document.getElementById('scoresBtn').addEventListener('click', () => {
+            console.log("Scores button clicked");
+            this.showScreen('SCORES');
+        });
+        
+        document.getElementById('instructionsBtn').addEventListener('click', () => {
+            console.log("Instructions button clicked");
+            this.showScreen('INSTRUCTIONS');
+        });
+        
         document.getElementById('soundToggle').addEventListener('click', () => this.toggleSound());
         
         // Кнопки паузы
-        document.getElementById('pauseBtn').addEventListener('click', () => this.pauseGame());
-        document.getElementById('resumeBtn').addEventListener('click', () => this.resumeGame());
-        document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
-        document.getElementById('menuFromPauseBtn').addEventListener('click', () => this.showScreen('MENU'));
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            console.log("Pause button clicked");
+            this.pauseGame();
+        });
+        
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            console.log("Resume button clicked");
+            this.resumeGame();
+        });
+        
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            console.log("Restart button clicked");
+            this.restartGame();
+        });
+        
+        document.getElementById('menuFromPauseBtn').addEventListener('click', () => {
+            console.log("Menu from pause clicked");
+            this.showScreen('MENU');
+        });
         
         // Таблица рекордов
-        document.getElementById('backFromScoresBtn').addEventListener('click', () => this.showScreen('MENU'));
+        document.getElementById('backFromScoresBtn').addEventListener('click', () => {
+            console.log("Back from scores clicked");
+            this.showScreen('MENU');
+        });
         
         // Конец игры
-        document.getElementById('saveScoreBtn').addEventListener('click', () => this.saveScore());
-        document.getElementById('playAgainBtn').addEventListener('click', () => this.restartGame());
-        document.getElementById('menuFromGameOverBtn').addEventListener('click', () => this.showScreen('MENU'));
+        document.getElementById('saveScoreBtn').addEventListener('click', () => {
+            console.log("Save score clicked");
+            this.saveScore();
+        });
+        
+        document.getElementById('playAgainBtn').addEventListener('click', () => {
+            console.log("Play again clicked");
+            this.restartGame();
+        });
+        
+        document.getElementById('menuFromGameOverBtn').addEventListener('click', () => {
+            console.log("Menu from game over clicked");
+            this.showScreen('MENU');
+        });
         
         // Инструкция
-        document.getElementById('backFromInstructionsBtn').addEventListener('click', () => this.showScreen('MENU'));
+        document.getElementById('backFromInstructionsBtn').addEventListener('click', () => {
+            console.log("Back from instructions clicked");
+            this.showScreen('MENU');
+        });
         
         // Ввод имени
         document.getElementById('playerName').addEventListener('keypress', (e) => {
@@ -167,9 +223,13 @@ class Game {
                 this.saveScore();
             }
         });
+        
+        console.log("Event listeners set up");
     }
     
     showScreen(screenName) {
+        console.log("Switching to screen:", screenName);
+        
         // Скрыть все экраны
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
@@ -179,49 +239,63 @@ class Game {
         switch(screenName) {
             case 'MENU':
                 document.getElementById('menu').classList.add('active');
+                this.state = 'MENU';
                 break;
             case 'GAME':
                 document.getElementById('gameScreen').classList.add('active');
+                this.state = 'PLAYING';
                 break;
             case 'PAUSE':
                 document.getElementById('pauseScreen').classList.add('active');
+                this.state = 'PAUSED';
                 break;
             case 'SCORES':
-                this.updateScoresDisplay();
                 document.getElementById('scoresScreen').classList.add('active');
+                this.state = 'SCORES';
                 break;
             case 'GAME_OVER':
-                document.getElementById('finalScore').textContent = this.score;
                 document.getElementById('gameOverScreen').classList.add('active');
+                this.state = 'GAME_OVER';
                 break;
             case 'INSTRUCTIONS':
                 document.getElementById('instructionsScreen').classList.add('active');
+                this.state = 'INSTRUCTIONS';
                 break;
         }
         
-        this.state = screenName;
+        console.log("Screen switched, new state:", this.state);
     }
     
     startGame() {
+        console.log("Starting game...");
         this.score = 0;
         this.moves = 30;
         this.timeLeft = 120;
         this.comboCounter = 1;
         this.selectedGem = null;
+        this.isAnimating = false;
+        this.swapBackPending = false;
+        this.gemsToSwapBack = [];
+        this.explosions = [];
+        this.particles = [];
         this.init();
         this.showScreen('GAME');
         this.updateGameDisplay();
+        console.log("Game started, state:", this.state);
     }
     
     pauseGame() {
+        console.log("Pausing game...");
         this.showScreen('PAUSE');
     }
     
     resumeGame() {
+        console.log("Resuming game...");
         this.showScreen('GAME');
     }
     
     restartGame() {
+        console.log("Restarting game...");
         this.startGame();
     }
     
@@ -236,11 +310,18 @@ class Game {
     }
     
     handleCanvasClick(event) {
-        if (this.state !== 'GAME' || this.isAnimating) return;
+        console.log("Canvas click handler, state:", this.state, "isAnimating:", this.isAnimating);
+        
+        if (this.state !== 'PLAYING' || this.isAnimating) {
+            console.log("Cannot handle click - wrong state or animating");
+            return;
+        }
         
         const rect = this.canvas.getBoundingClientRect();
         const x = (event.clientX || event.pageX) - rect.left;
         const y = (event.clientY || event.pageY) - rect.top;
+        
+        console.log("Click at coordinates:", x, y);
         
         // Ищем фигуру по которой кликнули
         for (let row = 0; row < this.gridSize; row++) {
@@ -250,15 +331,21 @@ class Game {
                     x >= gem.x && x <= gem.x + this.cellSize &&
                     y >= gem.y && y <= gem.y + this.cellSize) {
                     
+                    console.log("Clicked gem at row:", row, "col:", col);
+                    
                     if (this.isSoundOn) playClickSound();
                     
                     if (!this.selectedGem) {
                         // Выбираем первую фигуру
+                        console.log("Selecting first gem");
                         this.selectedGem = gem;
                         gem.selected = true;
                     } else {
+                        console.log("Second gem clicked, selected gem at:", this.selectedGem.row, this.selectedGem.col);
+                        
                         // Если кликнули на ту же фигуру - отмена выбора
                         if (gem === this.selectedGem) {
+                            console.log("Clicked same gem, deselecting");
                             this.selectedGem.selected = false;
                             this.selectedGem = null;
                         } else {
@@ -266,9 +353,13 @@ class Game {
                             const rowDiff = Math.abs(gem.row - this.selectedGem.row);
                             const colDiff = Math.abs(gem.col - this.selectedGem.col);
                             
+                            console.log("Row diff:", rowDiff, "Col diff:", colDiff);
+                            
                             if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                                console.log("Gems are adjacent, swapping...");
                                 this.swapGems(this.selectedGem, gem);
                             } else {
+                                console.log("Gems are not adjacent, selecting new gem");
                                 // Выбираем новую фигуру
                                 this.selectedGem.selected = false;
                                 this.selectedGem = gem;
@@ -280,9 +371,18 @@ class Game {
                 }
             }
         }
+        
+        // Если кликнули мимо фигур, снимаем выделение
+        if (this.selectedGem) {
+            console.log("Clicked outside gems, deselecting");
+            this.selectedGem.selected = false;
+            this.selectedGem = null;
+        }
     }
     
     swapGems(gem1, gem2) {
+        console.log("Swapping gems at", gem1.row, gem1.col, "and", gem2.row, gem2.col);
+        
         // Сохраняем старые позиции
         const oldRow1 = gem1.row, oldCol1 = gem1.col;
         const oldRow2 = gem2.row, oldCol2 = gem2.col;
@@ -297,7 +397,13 @@ class Game {
         
         // Обновляем координаты для анимации
         gem1.targetX = this.gridOffsetX + gem1.col * this.cellSize;
+        gem1.x = gem1.targetX; // Сразу обновляем для отрисовки
         gem2.targetX = this.gridOffsetX + gem2.col * this.cellSize;
+        gem2.x = gem2.targetX;
+        
+        // Обновляем Y координаты
+        gem1.targetY = this.gridOffsetY + gem1.row * this.cellSize;
+        gem2.targetY = this.gridOffsetY + gem2.row * this.cellSize;
         
         // Снимаем выделение
         gem1.selected = false;
@@ -308,11 +414,15 @@ class Game {
         
         if (this.isSoundOn) playSwapSound();
         
+        console.log("Gems swapped, moves left:", this.moves);
+        
         // Проверяем совпадения
         const matches = this.findMatches();
+        console.log("Found matches:", matches.length);
         
         if (matches.length > 0) {
             // Есть совпадения
+            console.log("Matches found, removing...");
             this.isAnimating = true;
             setTimeout(() => {
                 this.removeMatches(matches);
@@ -320,14 +430,40 @@ class Game {
             }, 300);
         } else {
             // Нет совпадений - возвращаем фигуры
+            console.log("No matches found, swapping back...");
             this.isAnimating = true;
             this.swapBackPending = true;
             this.gemsToSwapBack = [gem1, gem2];
             setTimeout(() => {
-                this.swapGems(gem1, gem2);
-                this.moves++; // Возвращаем ход
+                console.log("Swapping back...");
+                // Временно сохраняем ссылки
+                const tempGem1 = this.gemsToSwapBack[0];
+                const tempGem2 = this.gemsToSwapBack[1];
+                
+                // Возвращаем на место
+                this.grid[tempGem1.row][tempGem1.col] = tempGem2;
+                this.grid[tempGem2.row][tempGem2.col] = tempGem1;
+                
+                // Восстанавливаем позиции
+                tempGem1.row = oldRow1; tempGem1.col = oldCol1;
+                tempGem2.row = oldRow2; tempGem2.col = oldCol2;
+                
+                // Восстанавливаем координаты
+                tempGem1.x = this.gridOffsetX + tempGem1.col * this.cellSize;
+                tempGem1.targetX = tempGem1.x;
+                tempGem1.targetY = this.gridOffsetY + tempGem1.row * this.cellSize;
+                
+                tempGem2.x = this.gridOffsetX + tempGem2.col * this.cellSize;
+                tempGem2.targetX = tempGem2.x;
+                tempGem2.targetY = this.gridOffsetY + tempGem2.row * this.cellSize;
+                
                 this.swapBackPending = false;
+                this.gemsToSwapBack = [];
                 this.isAnimating = false;
+                this.moves++; // Возвращаем ход
+                this.updateGameDisplay();
+                
+                console.log("Swap back complete, moves restored:", this.moves);
             }, 300);
         }
         
@@ -404,6 +540,8 @@ class Game {
     removeMatches(matches) {
         if (matches.length === 0) return;
         
+        console.log("Removing", matches.length, "matches");
+        
         // Проверяем комбо
         const currentTime = Date.now();
         if (currentTime - this.lastMatchTime < 2000) {
@@ -424,6 +562,8 @@ class Game {
         const comboBonus = basePoints * (this.comboCounter - 1) * 0.5;
         const points = Math.floor(basePoints + comboBonus);
         this.score += points;
+        
+        console.log("Score:", this.score, "Combo:", this.comboCounter, "Points:", points);
         
         // Создаем взрывы
         matches.forEach(match => {
@@ -484,16 +624,20 @@ class Game {
     }
     
     checkMatchesAfterAnimation() {
+        console.log("Checking for more matches after animation...");
         setTimeout(() => {
             const newMatches = this.findMatches();
             if (newMatches.length > 0) {
+                console.log("Found additional matches:", newMatches.length);
                 this.removeMatches(newMatches);
                 this.checkMatchesAfterAnimation();
             } else {
+                console.log("No more matches, ending animation");
                 this.isAnimating = false;
                 
                 // Проверяем конец игры
                 if (this.moves <= 0 || this.timeLeft <= 0) {
+                    console.log("Game over! Moves:", this.moves, "Time:", this.timeLeft);
                     setTimeout(() => {
                         this.showScreen('GAME_OVER');
                     }, 500);
@@ -571,7 +715,7 @@ class Game {
     }
     
     update(deltaTime) {
-        if (this.state === 'GAME') {
+        if (this.state === 'PLAYING') {
             this.timeLeft -= deltaTime / 1000;
             if (this.timeLeft < 0) this.timeLeft = 0;
             
@@ -626,51 +770,54 @@ class Game {
         this.ctx.fillStyle = '#1a1a2e';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Рисуем фон поля
-        const gridWidth = this.gridSize * this.cellSize;
-        const gridHeight = this.gridSize * this.cellSize;
-        
-        this.ctx.fillStyle = '#1e222a';
-        this.ctx.beginPath();
-        this.ctx.roundRect(
-            this.gridOffsetX - 10,
-            this.gridOffsetY - 10,
-            gridWidth + 20,
-            gridHeight + 20,
-            15
-        );
-        this.ctx.fill();
-        
-        // Рисуем сетку
-        this.ctx.strokeStyle = '#3c4048';
-        this.ctx.lineWidth = 1;
-        
-        for (let row = 0; row <= this.gridSize; row++) {
+        // Только в состоянии PLAYING рисуем игровое поле
+        if (this.state === 'PLAYING') {
+            // Рисуем фон поля
+            const gridWidth = this.gridSize * this.cellSize;
+            const gridHeight = this.gridSize * this.cellSize;
+            
+            this.ctx.fillStyle = '#1e222a';
             this.ctx.beginPath();
-            this.ctx.moveTo(this.gridOffsetX, this.gridOffsetY + row * this.cellSize);
-            this.ctx.lineTo(this.gridOffsetX + gridWidth, this.gridOffsetY + row * this.cellSize);
-            this.ctx.stroke();
-        }
-        
-        for (let col = 0; col <= this.gridSize; col++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.gridOffsetX + col * this.cellSize, this.gridOffsetY);
-            this.ctx.lineTo(this.gridOffsetX + col * this.cellSize, this.gridOffsetY + gridHeight);
-            this.ctx.stroke();
-        }
-        
-        // Рисуем фигуры
-        for (let row = 0; row < this.gridSize; row++) {
-            for (let col = 0; col < this.gridSize; col++) {
-                const gem = this.grid[row][col];
-                if (gem) {
-                    this.drawGem(gem);
+            this.ctx.roundRect(
+                this.gridOffsetX - 10,
+                this.gridOffsetY - 10,
+                gridWidth + 20,
+                gridHeight + 20,
+                15
+            );
+            this.ctx.fill();
+            
+            // Рисуем сетку
+            this.ctx.strokeStyle = '#3c4048';
+            this.ctx.lineWidth = 1;
+            
+            for (let row = 0; row <= this.gridSize; row++) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.gridOffsetX, this.gridOffsetY + row * this.cellSize);
+                this.ctx.lineTo(this.gridOffsetX + gridWidth, this.gridOffsetY + row * this.cellSize);
+                this.ctx.stroke();
+            }
+            
+            for (let col = 0; col <= this.gridSize; col++) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.gridOffsetX + col * this.cellSize, this.gridOffsetY);
+                this.ctx.lineTo(this.gridOffsetX + col * this.cellSize, this.gridOffsetY + gridHeight);
+                this.ctx.stroke();
+            }
+            
+            // Рисуем фигуры
+            for (let row = 0; row < this.gridSize; row++) {
+                for (let col = 0; col < this.gridSize; col++) {
+                    const gem = this.grid[row][col];
+                    if (gem) {
+                        this.drawGem(gem);
+                    }
                 }
             }
+            
+            // Рисуем частицы
+            this.drawParticles();
         }
-        
-        // Рисуем частицы
-        this.drawParticles();
     }
     
     drawGem(gem) {
@@ -784,6 +931,7 @@ class Game {
 let game;
 
 window.addEventListener('load', () => {
+    console.log("Window loaded, initializing game...");
     game = new Game();
     game.showScreen('MENU');
     
@@ -793,4 +941,6 @@ window.addEventListener('load', () => {
             e.preventDefault();
         }
     }, { passive: false });
+    
+    console.log("Game initialization complete");
 });
