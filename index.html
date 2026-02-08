@@ -10,9 +10,7 @@
 </head>
 <body>
     <div class="container">
-        <canvas id="gameCanvas"></canvas>
-        
-        <!-- Меню -->
+        <!-- Все экраны (меню, пауза, таблица рекордов) -->
         <div id="menu" class="screen active">
             <div class="menu-content">
                 <h1><i class="fas fa-gem"></i> ТРИ В РЯД</h1>
@@ -36,32 +34,6 @@
                     <p><i class="fas fa-bolt"></i> Составляйте линии из 3+ одинаковых фигур</p>
                     <p><i class="fas fa-clock"></i> У вас 30 ходов и 2 минуты!</p>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Игровой экран -->
-        <div id="gameScreen" class="screen">
-            <div class="game-header">
-                <div class="score-display">
-                    <div class="stat">
-                        <i class="fas fa-star"></i>
-                        <span id="score">0</span>
-                    </div>
-                    <div class="stat">
-                        <i class="fas fa-shoe-prints"></i>
-                        <span id="moves">30</span>
-                    </div>
-                    <div class="stat">
-                        <i class="fas fa-clock"></i>
-                        <span id="timer">02:00</span>
-                    </div>
-                </div>
-                <div id="comboDisplay" class="combo-display">
-                    Комбо: <span id="combo">x1</span>
-                </div>
-                <button id="pauseBtn" class="btn-small">
-                    <i class="fas fa-pause"></i> Пауза
-                </button>
             </div>
         </div>
         
@@ -169,6 +141,33 @@
                     <i class="fas fa-arrow-left"></i> Назад
                 </button>
             </div>
+        </div>
+        
+        <!-- Игровой экран (теперь отдельно) -->
+        <div id="gameScreen" class="game-screen">
+            <div class="game-header">
+                <div class="score-display">
+                    <div class="stat">
+                        <i class="fas fa-star"></i>
+                        <span id="score">0</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-shoe-prints"></i>
+                        <span id="moves">30</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-clock"></i>
+                        <span id="timer">02:00</span>
+                    </div>
+                </div>
+                <div id="comboDisplay" class="combo-display">
+                    Комбо: <span id="combo">x1</span>
+                </div>
+                <button id="pauseBtn" class="btn-small">
+                    <i class="fas fa-pause"></i> Пауза
+                </button>
+            </div>
+            <canvas id="gameCanvas"></canvas>
         </div>
     </div>
     
