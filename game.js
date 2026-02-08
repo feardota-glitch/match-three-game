@@ -46,9 +46,7 @@ class Game {
         // Скрываем игровой экран при запуске
         document.getElementById('gameScreen').classList.remove('active');
     }
-        
-        console.log("Game initialized, state:", this.state);
-    }
+    
     
     resizeCanvas() {
         this.canvas.width = window.innerWidth;
@@ -271,7 +269,6 @@ class Game {
         }
         
         console.log("Screen switched, new state:", this.state);
-    }
     }
     
     startGame() {
@@ -952,4 +949,5 @@ window.addEventListener('load', () => {
     
     console.log("Game initialization complete");
 });
+
 
