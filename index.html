@@ -3,175 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Три в ряд - Match-3 Game</title>
+    <title>Три в ряд</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <!-- Все экраны (меню, пауза, таблица рекордов) -->
-        <div id="menu" class="screen active">
-            <div class="menu-content">
-                <h1><i class="fas fa-gem"></i> ТРИ В РЯД</h1>
-                <div class="menu-buttons">
-                    <button id="startBtn" class="btn-menu">
-                        <i class="fas fa-play"></i> Начать игру
-                    </button>
-                    <button id="scoresBtn" class="btn-menu">
-                        <i class="fas fa-trophy"></i> Таблица рекордов
-                    </button>
-                    <button id="instructionsBtn" class="btn-menu">
-                        <i class="fas fa-info-circle"></i> Инструкция
-                    </button>
-                    <button id="soundToggle" class="btn-menu">
-                        <i class="fas fa-volume-up"></i> Звук: Вкл
-                    </button>
-                </div>
-                
-                <div class="instructions">
-                    <p><i class="fas fa-mouse-pointer"></i> Кликните на фигуру, затем на соседнюю для обмена</p>
-                    <p><i class="fas fa-bolt"></i> Составляйте линии из 3+ одинаковых фигур</p>
-                    <p><i class="fas fa-clock"></i> У вас 30 ходов и 2 минуты!</p>
-                </div>
+    <!-- Canvas для игры -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Все UI экраны поверх canvas -->
+    <div id="menuScreen" class="ui-screen active">
+        <div class="ui-content">
+            <h1>ТРИ В РЯД</h1>
+            <div class="ui-buttons">
+                <button id="startBtn" class="ui-btn">Начать игру</button>
+                <button id="scoresBtn" class="ui-btn">Таблица рекордов</button>
+                <button id="instructionsBtn" class="ui-btn">Инструкция</button>
             </div>
-        </div>
-        
-        <!-- Пауза -->
-        <div id="pauseScreen" class="screen">
-            <div class="pause-content">
-                <h2><i class="fas fa-pause"></i> ПАУЗА</h2>
-                <div class="pause-buttons">
-                    <button id="resumeBtn" class="btn-menu">
-                        <i class="fas fa-play"></i> Продолжить
-                    </button>
-                    <button id="restartBtn" class="btn-menu">
-                        <i class="fas fa-redo"></i> Начать заново
-                    </button>
-                    <button id="menuFromPauseBtn" class="btn-menu">
-                        <i class="fas fa-home"></i> В меню
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Таблица рекордов -->
-        <div id="scoresScreen" class="screen">
-            <div class="scores-content">
-                <h2><i class="fas fa-trophy"></i> ТАБЛИЦА РЕКОРДОВ</h2>
-                <div class="scores-table">
-                    <div class="table-header">
-                        <div class="col-rank">Место</div>
-                        <div class="col-name">Имя</div>
-                        <div class="col-score">Очки</div>
-                    </div>
-                    <div id="scoresList" class="scores-list">
-                    </div>
-                </div>
-                <button id="backFromScoresBtn" class="btn-menu">
-                    <i class="fas fa-arrow-left"></i> Назад
-                </button>
-            </div>
-        </div>
-        
-        <!-- Конец игры -->
-        <div id="gameOverScreen" class="screen">
-            <div class="gameover-content">
-                <h2 id="gameOverTitle"><i class="fas fa-gamepad"></i> ИГРА ОКОНЧЕНА</h2>
-                <div class="final-score">
-                    <i class="fas fa-star"></i>
-                    <span id="finalScore">0</span>
-                </div>
-                
-                <div class="input-group">
-                    <input type="text" id="playerName" placeholder="Введите ваше имя" maxlength="15">
-                    <button id="saveScoreBtn" class="btn-menu">
-                        <i class="fas fa-save"></i> Сохранить результат
-                    </button>
-                </div>
-                
-                <div class="gameover-buttons">
-                    <button id="playAgainBtn" class="btn-menu">
-                        <i class="fas fa-redo"></i> Играть снова
-                    </button>
-                    <button id="menuFromGameOverBtn" class="btn-menu">
-                        <i class="fas fa-home"></i> В меню
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Инструкция -->
-        <div id="instructionsScreen" class="screen">
-            <div class="instructions-content">
-                <h2><i class="fas fa-info-circle"></i> ИНСТРУКЦИЯ</h2>
-                <div class="instructions-list">
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-mouse-pointer"></i></div>
-                        <div class="instruction-text">
-                            <h3>Основная механика</h3>
-                            <p>Кликните на фигуру, затем на соседнюю фигуру (по горизонтали или вертикали), чтобы поменять их местами.</p>
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-bolt"></i></div>
-                        <div class="instruction-text">
-                            <h3>Цель игры</h3>
-                            <p>Составляйте линии из 3 или более одинаковых фигур. Фигуры исчезают, принося очки.</p>
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-star"></i></div>
-                        <div class="instruction-text">
-                            <h3>Система очков</h3>
-                            <p>• Каждая фигура: 100 очков<br>
-                               • Комбо: +50% очков за каждый уровень<br>
-                               • Чем длиннее линия, тем больше очков!</p>
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-clock"></i></div>
-                        <div class="instruction-text">
-                            <h3>Ограничения</h3>
-                            <p>У вас есть 30 ходов и 2 минуты. Игра заканчивается, когда заканчиваются ходы или время.</p>
-                        </div>
-                    </div>
-                </div>
-                <button id="backFromInstructionsBtn" class="btn-menu">
-                    <i class="fas fa-arrow-left"></i> Назад
-                </button>
-            </div>
-        </div>
-        
-        <!-- Игровой экран (теперь отдельно) -->
-        <div id="gameScreen" class="game-screen">
-            <div class="game-header">
-                <div class="score-display">
-                    <div class="stat">
-                        <i class="fas fa-star"></i>
-                        <span id="score">0</span>
-                    </div>
-                    <div class="stat">
-                        <i class="fas fa-shoe-prints"></i>
-                        <span id="moves">30</span>
-                    </div>
-                    <div class="stat">
-                        <i class="fas fa-clock"></i>
-                        <span id="timer">02:00</span>
-                    </div>
-                </div>
-                <div id="comboDisplay" class="combo-display">
-                    Комбо: <span id="combo">x1</span>
-                </div>
-                <button id="pauseBtn" class="btn-small">
-                    <i class="fas fa-pause"></i> Пауза
-                </button>
-            </div>
-            <canvas id="gameCanvas"></canvas>
         </div>
     </div>
     
+    <div id="pauseScreen" class="ui-screen">
+        <div class="ui-content">
+            <h2>ПАУЗА</h2>
+            <div class="ui-buttons">
+                <button id="resumeBtn" class="ui-btn">Продолжить</button>
+                <button id="restartBtn" class="ui-btn">Начать заново</button>
+                <button id="menuFromPauseBtn" class="ui-btn">В меню</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="scoresScreen" class="ui-screen">
+        <div class="ui-content">
+            <h2>ТАБЛИЦА РЕКОРДОВ</h2>
+            <div id="scoresList" class="scores-list"></div>
+            <button id="backFromScoresBtn" class="ui-btn">Назад</button>
+        </div>
+    </div>
+    
+    <div id="gameOverScreen" class="ui-screen">
+        <div class="ui-content">
+            <h2>ИГРА ОКОНЧЕНА</h2>
+            <div class="final-score">Очки: <span id="finalScore">0</span></div>
+            <input type="text" id="playerName" placeholder="Ваше имя">
+            <div class="ui-buttons">
+                <button id="saveScoreBtn" class="ui-btn">Сохранить</button>
+                <button id="playAgainBtn" class="ui-btn">Играть снова</button>
+                <button id="menuFromGameOverBtn" class="ui-btn">В меню</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="instructionsScreen" class="ui-screen">
+        <div class="ui-content">
+            <h2>ИНСТРУКЦИЯ</h2>
+            <div class="instructions">
+                <p>1. Кликните на фигуру, затем на соседнюю</p>
+                <p>2. Составляйте линии из 3+ одинаковых фигур</p>
+                <p>3. У вас 30 ходов и 2 минуты!</p>
+            </div>
+            <button id="backFromInstructionsBtn" class="ui-btn">Назад</button>
+        </div>
+    </div>
+    
+    <!-- Игровой HUD (всегда поверх canvas) -->
+    <div id="gameHUD" class="game-hud">
+        <div class="hud-stats">
+            <div class="stat">Очки: <span id="score">0</span></div>
+            <div class="stat">Ходы: <span id="moves">30</span></div>
+            <div class="stat">Время: <span id="timer">02:00</span></div>
+            <div id="comboDisplay" class="combo">Комбо: x1</div>
+        </div>
+        <button id="pauseBtn" class="hud-btn">Пауза</button>
+    </div>
+
     <script src="game.js"></script>
-    <script src="sounds.js"></script>
 </body>
 </html>
