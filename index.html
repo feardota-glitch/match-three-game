@@ -1,212 +1,249 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Три в ряд - Тест</title>
+    <title>Три в ряд - Рабочая версия</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-        
-        body {
-            font-family: Arial, sans-serif;
-            background: #282c34;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        
-        #game-container {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        #game-canvas {
-            background: #1e2129;
-            border: 2px solid #4a4f6d;
-            border-radius: 10px;
-            display: block;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-        }
-        
-        button {
-            padding: 10px 20px;
-            background: #4a6bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        button:hover {
-            background: #3a5bef;
-        }
-        
-        #status {
-            font-size: 18px;
-            text-align: center;
-        }
+        body { margin:0; padding:20px; background:#282c34; color:white; font-family:Arial; }
+        #game { width:100%; max-width:400px; margin:0 auto; }
+        #board { background:#1e2129; border:2px solid #4a4f6d; border-radius:10px; }
+        .cell { width:50px; height:50px; display:inline-block; margin:2px; border-radius:8px; }
+        .red { background:#ff6b6b; }
+        .blue { background:#4a6bff; }
+        .green { background:#00ff88; }
+        .yellow { background:#ffd700; }
+        .purple { background:#9d4edd; }
+        .orange { background:#ff9e00; }
+        button { display:block; width:100%; padding:15px; margin:10px 0; background:#4a6bff; color:white; border:none; border-radius:8px; font-size:18px; }
+        #info { text-align:center; font-size:20px; margin:20px 0; }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <h1>Три в ряд - Тест</h1>
-        <canvas id="game-canvas" width="400" height="400"></canvas>
-        <div id="status">Нажмите "Начать игру"</div>
-        <div class="controls">
-            <button id="start-btn">Начать игру</button>
-            <button id="debug-btn">Проверить отладку</button>
-        </div>
-        <div id="log" style="margin-top: 20px; color: #ccc; font-size: 12px;"></div>
+    <div id="game">
+        <h1 style="text-align:center;">Три в ряд</h1>
+        <div id="info">Очки: <span id="score">0</span> | Ходы: <span id="moves">30</span></div>
+        <div id="board"></div>
+        <button onclick="startGame()">Начать игру</button>
+        <button onclick="resetGame()">Сбросить игру</button>
+        <div id="message" style="text-align:center; margin-top:20px;"></div>
     </div>
-    
+
     <script>
-        // Простой логгер для отладки
-        function log(message) {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML += message + '<br>';
-            console.log(message);
+        const GRID_SIZE = 8;
+        const COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        let score = 0;
+        let moves = 30;
+        let board = [];
+        let selectedCell = null;
+        
+        function createBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            board = [];
+            
+            for (let row = 0; row < GRID_SIZE; row++) {
+                board[row] = [];
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    // Случайный цвет
+                    let colorIndex;
+                    do {
+                        colorIndex = Math.floor(Math.random() * COLORS.length);
+                    } while (hasInitialMatch(row, col, colorIndex));
+                    
+                    board[row][col] = colorIndex;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell ' + COLORS[colorIndex];
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => handleClick(row, col);
+                    
+                    boardDiv.appendChild(cell);
+                }
+                boardDiv.appendChild(document.createElement('br'));
+            }
         }
         
-        // Проверяем загрузку страницы
-        log('Страница загружается...');
+        function hasInitialMatch(row, col, colorIndex) {
+            // Проверяем слева
+            if (col >= 2) {
+                if (board[row][col-1] === colorIndex && board[row][col-2] === colorIndex) {
+                    return true;
+                }
+            }
+            // Проверяем сверху
+            if (row >= 2) {
+                if (board[row-1] && board[row-1][col] === colorIndex && 
+                    board[row-2] && board[row-2][col] === colorIndex) {
+                    return true;
+                }
+            }
+            return false;
+        }
         
-        window.addEventListener('load', function() {
-            log('Страница полностью загружена');
+        function handleClick(row, col) {
+            if (moves <= 0) return;
             
-            const canvas = document.getElementById('game-canvas');
-            const ctx = canvas.getContext('2d');
-            const status = document.getElementById('status');
+            const cells = document.querySelectorAll('.cell');
+            const index = row * GRID_SIZE + col;
             
-            // Проверяем canvas
-            if (canvas && ctx) {
-                log('Canvas инициализирован успешно');
-                
-                // Рисуем тестовый квадрат
-                ctx.fillStyle = '#ff6b6b';
-                ctx.fillRect(50, 50, 100, 100);
-                log('Тестовый квадрат нарисован');
+            if (selectedCell === null) {
+                // Выбираем первую фигуру
+                selectedCell = {row, col};
+                cells[index].style.border = '3px solid white';
+                showMessage(`Выбрана фигура: ${row},${col}`);
             } else {
-                log('ОШИБКА: Canvas не инициализирован');
+                // Если кликнули ту же фигуру
+                if (selectedCell.row === row && selectedCell.col === col) {
+                    cells[selectedCell.row * GRID_SIZE + selectedCell.col].style.border = 'none';
+                    selectedCell = null;
+                    showMessage('Выбор отменен');
+                    return;
+                }
+                
+                // Проверяем, соседи ли фигуры
+                const rowDiff = Math.abs(selectedCell.row - row);
+                const colDiff = Math.abs(selectedCell.col - col);
+                
+                if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                    // Меняем фигуры местами
+                    swapGems(selectedCell.row, selectedCell.col, row, col);
+                    moves--;
+                    document.getElementById('moves').textContent = moves;
+                    
+                    // Проверяем совпадения
+                    setTimeout(checkMatches, 300);
+                } else {
+                    // Выбираем новую фигуру
+                    cells[selectedCell.row * GRID_SIZE + selectedCell.col].style.border = 'none';
+                    selectedCell = {row, col};
+                    cells[index].style.border = '3px solid white';
+                    showMessage(`Выбрана новая фигура: ${row},${col}`);
+                }
+            }
+        }
+        
+        function swapGems(r1, c1, r2, c2) {
+            // Меняем местами в массиве
+            [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+            
+            // Обновляем отображение
+            updateDisplay();
+            showMessage(`Обмен: ${r1},${c1} ↔ ${r2},${c2}`);
+        }
+        
+        function updateDisplay() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / GRID_SIZE);
+                const col = index % GRID_SIZE;
+                cell.className = 'cell ' + COLORS[board[row][col]];
+            });
+        }
+        
+        function checkMatches() {
+            let matches = [];
+            
+            // Проверяем горизонтальные совпадения
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE - 2; col++) {
+                    if (board[row][col] === board[row][col+1] && 
+                        board[row][col] === board[row][col+2]) {
+                        matches.push([row, col]);
+                        matches.push([row, col+1]);
+                        matches.push([row, col+2]);
+                    }
+                }
             }
             
-            // Обработчик кнопки "Начать игру"
-            document.getElementById('start-btn').addEventListener('click', function() {
-                log('Нажата кнопка "Начать игру"');
-                status.textContent = 'Игра начинается...';
-                
-                // Создаем простую сетку
-                drawSimpleGrid();
-            });
+            // Проверяем вертикальные совпадения
+            for (let col = 0; col < GRID_SIZE; col++) {
+                for (let row = 0; row < GRID_SIZE - 2; row++) {
+                    if (board[row][col] === board[row+1][col] && 
+                        board[row][col] === board[row+2][col]) {
+                        matches.push([row, col]);
+                        matches.push([row+1, col]);
+                        matches.push([row+2, col]);
+                    }
+                }
+            }
             
-            // Обработчик кнопки отладки
-            document.getElementById('debug-btn').addEventListener('click', function() {
-                log('=== Отладка ===');
-                log('Ширина canvas: ' + canvas.width);
-                log('Высота canvas: ' + canvas.height);
-                log('Состояние ctx: ' + (ctx ? 'OK' : 'Ошибка'));
+            if (matches.length > 0) {
+                // Удаляем дубликаты
+                const uniqueMatches = Array.from(new Set(matches.map(JSON.stringify)), JSON.parse);
                 
-                // Тест рисования
-                ctx.fillStyle = '#00ff88';
-                ctx.fillRect(200, 200, 50, 50);
-                log('Тестовый квадрат 2 нарисован');
-            });
-            
-            function drawSimpleGrid() {
-                log('Рисуем простую сетку...');
+                // Добавляем очки
+                score += uniqueMatches.length * 100;
+                document.getElementById('score').textContent = score;
                 
-                // Очищаем canvas
-                ctx.fillStyle = '#1e2129';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Удаляем совпавшие фигуры
+                uniqueMatches.forEach(([row, col]) => {
+                    board[row][col] = -1; // Помечаем как пустую
+                });
                 
-                // Рисуем сетку 4x4
-                const gridSize = 4;
-                const cellSize = 80;
-                const startX = (canvas.width - gridSize * cellSize) / 2;
-                const startY = (canvas.height - gridSize * cellSize) / 2;
+                // Падение фигур
+                dropGems();
                 
-                // Цвета фигур
-                const colors = ['#ff6b6b', '#4a6bff', '#00ff88', '#ffd700'];
+                showMessage(`Найдено совпадений: ${uniqueMatches.length}! +${uniqueMatches.length * 100} очков`);
                 
-                for (let row = 0; row < gridSize; row++) {
-                    for (let col = 0; col < gridSize; col++) {
-                        const x = startX + col * cellSize + 5;
-                        const y = startY + row * cellSize + 5;
-                        const size = cellSize - 10;
-                        
-                        // Выбираем цвет
-                        const colorIndex = (row * gridSize + col) % colors.length;
-                        ctx.fillStyle = colors[colorIndex];
-                        
-                        // Рисуем квадрат
-                        ctx.fillRect(x, y, size, size);
-                        
-                        // Закругляем углы
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 3;
-                        ctx.strokeRect(x, y, size, size);
+                // Проверяем еще раз после падения
+                setTimeout(checkMatches, 500);
+            } else {
+                // Проверяем конец игры
+                if (moves <= 0) {
+                    showMessage(`Игра окончена! Ваш счет: ${score}`);
+                }
+                selectedCell = null;
+            }
+        }
+        
+        function dropGems() {
+            // Падение фигур вниз
+            for (let col = 0; col < GRID_SIZE; col++) {
+                let emptySpaces = 0;
+                
+                for (let row = GRID_SIZE - 1; row >= 0; row--) {
+                    if (board[row][col] === -1) {
+                        emptySpaces++;
+                    } else if (emptySpaces > 0) {
+                        board[row + emptySpaces][col] = board[row][col];
+                        board[row][col] = -1;
                     }
                 }
                 
-                log('Сетка нарисована');
-                status.textContent = 'Сетка 4x4 нарисована! Кликните на квадрат';
-                
-                // Добавляем обработчик кликов
-                canvas.addEventListener('click', function(event) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = event.clientX - rect.left;
-                    const y = event.clientY - rect.top;
-                    
-                    log('Клик по координатам: ' + Math.round(x) + ', ' + Math.round(y));
-                    
-                    // Определяем, в какую ячейку кликнули
-                    const col = Math.floor((x - startX) / cellSize);
-                    const row = Math.floor((y - startY) / cellSize);
-                    
-                    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
-                        log('Клик по ячейке: строка ' + row + ', столбец ' + col);
-                        status.textContent = `Выбрана ячейка: ${row},${col}`;
-                        
-                        // Подсвечиваем выбранную ячейку
-                        const highlightX = startX + col * cellSize;
-                        const highlightY = startY + row * cellSize;
-                        
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 5;
-                        ctx.strokeRect(highlightX, highlightY, cellSize, cellSize);
-                    }
-                });
+                // Заполняем верх новыми фигурами
+                for (let row = 0; row < emptySpaces; row++) {
+                    board[row][col] = Math.floor(Math.random() * COLORS.length);
+                }
             }
             
-            // Автоматически запускаем тест при загрузке
-            setTimeout(() => {
-                log('Автоматический тест запущен');
-                drawSimpleGrid();
-            }, 1000);
-        });
+            updateDisplay();
+        }
         
-        // Обработчик ошибок
-        window.addEventListener('error', function(event) {
-            log('ОШИБКА JavaScript: ' + event.message);
-            log('Файл: ' + event.filename);
-            log('Строка: ' + event.lineno);
-        });
+        function showMessage(text) {
+            document.getElementById('message').textContent = text;
+            console.log(text);
+        }
+        
+        function startGame() {
+            score = 0;
+            moves = 30;
+            selectedCell = null;
+            
+            document.getElementById('score').textContent = '0';
+            document.getElementById('moves').textContent = '30';
+            document.getElementById('message').textContent = '';
+            
+            createBoard();
+            showMessage('Игра началась! Выбирайте фигуры для обмена');
+        }
+        
+        function resetGame() {
+            startGame();
+        }
+        
+        // Автозапуск при загрузке
+        window.addEventListener('load', startGame);
     </script>
 </body>
 </html>
