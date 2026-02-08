@@ -2,98 +2,211 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Три в ряд - Игра</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="apple-touch-icon" href="assets/icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Три в ряд">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Три в ряд - Тест</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #282c34;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        #game-canvas {
+            background: #1e2129;
+            border: 2px solid #4a4f6d;
+            border-radius: 10px;
+            display: block;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #4a6bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #3a5bef;
+        }
+        
+        #status {
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <div id="game-container">
-        <div id="score-panel">
-            <div class="score-item">
-                <span class="label">Очки:</span>
-                <span id="score" class="value">0</span>
-            </div>
-            <div class="score-item">
-                <span class="label">Ходы:</span>
-                <span id="moves" class="value">30</span>
-            </div>
-            <div class="score-item">
-                <span class="label">Время:</span>
-                <span id="time" class="value">02:00</span>
-            </div>
-            <div id="combo-display" class="combo">Комбо x1!</div>
+        <h1>Три в ряд - Тест</h1>
+        <canvas id="game-canvas" width="400" height="400"></canvas>
+        <div id="status">Нажмите "Начать игру"</div>
+        <div class="controls">
+            <button id="start-btn">Начать игру</button>
+            <button id="debug-btn">Проверить отладку</button>
         </div>
-        
-        <canvas id="game-canvas"></canvas>
-        
-        <div id="menu" class="screen active">
-            <div class="title">ТРИ В РЯД</div>
-            <div class="menu-buttons">
-                <button class="menu-btn" id="start-btn">Начать игру</button>
-                <button class="menu-btn" id="scores-btn">Таблица очков</button>
-                <button class="menu-btn" id="help-btn">Помощь</button>
-            </div>
-            <div class="instructions">
-                <p>Цель: составляйте линии из 3+ одинаковых фигур.</p>
-                <p>У вас 30 ходов и 2 минуты!</p>
-            </div>
-        </div>
-        
-        <div id="game-over" class="screen">
-            <div class="title" id="game-over-title">ИГРА ОКОНЧЕНА</div>
-            <div class="score-display">Ваши очки: <span id="final-score">0</span></div>
-            <div class="name-input">
-                <input type="text" id="player-name" placeholder="Введите ваше имя" maxlength="15">
-                <button id="save-score-btn">Сохранить результат</button>
-            </div>
-            <div class="menu-buttons">
-                <button class="menu-btn" id="play-again-btn">Играть снова</button>
-                <button class="menu-btn" id="back-to-menu-btn">Главное меню</button>
-            </div>
-        </div>
-        
-        <div id="high-scores" class="screen">
-            <div class="title">ТАБЛИЦА РЕКОРДОВ</div>
-            <div id="scores-table">
-                <div class="table-header">
-                    <span class="rank">Место</span>
-                    <span class="name">Имя</span>
-                    <span class="score">Очки</span>
-                </div>
-                <div id="scores-list"></div>
-            </div>
-            <button class="menu-btn" id="back-btn">Назад</button>
-        </div>
-        
-        <div id="help" class="screen">
-            <div class="title">ПОМОЩЬ</div>
-            <div class="help-content">
-                <h3>Как играть:</h3>
-                <p>1. Нажмите на фигуру, чтобы выбрать её</p>
-                <p>2. Нажмите на соседнюю фигуру для обмена</p>
-                <p>3. Собирайте линии из 3+ одинаковых фигур</p>
-                <p>4. Линии могут быть горизонтальные или вертикальные</p>
-                <p>5. За каждую собранную фигуру получаете 100 очков</p>
-                <p>6. Комбо увеличивает количество очков</p>
-                
-                <h3>Цель игры:</h3>
-                <p>Набрать как можно больше очков за 30 ходов или 2 минуты.</p>
-                
-                <h3>Управление:</h3>
-                <p>• Нажмите на фигуру для выбора</p>
-                <p>• Нажмите на соседнюю фигуру для обмена</p>
-                <p>• Нажмите на выбранную фигуру для отмены выбора</p>
-            </div>
-            <button class="menu-btn" id="help-back-btn">Назад</button>
-        </div>
-        
-        <div id="touch-overlay"></div>
+        <div id="log" style="margin-top: 20px; color: #ccc; font-size: 12px;"></div>
     </div>
     
-    <script src="game.js"></script>
+    <script>
+        // Простой логгер для отладки
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += message + '<br>';
+            console.log(message);
+        }
+        
+        // Проверяем загрузку страницы
+        log('Страница загружается...');
+        
+        window.addEventListener('load', function() {
+            log('Страница полностью загружена');
+            
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const status = document.getElementById('status');
+            
+            // Проверяем canvas
+            if (canvas && ctx) {
+                log('Canvas инициализирован успешно');
+                
+                // Рисуем тестовый квадрат
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(50, 50, 100, 100);
+                log('Тестовый квадрат нарисован');
+            } else {
+                log('ОШИБКА: Canvas не инициализирован');
+            }
+            
+            // Обработчик кнопки "Начать игру"
+            document.getElementById('start-btn').addEventListener('click', function() {
+                log('Нажата кнопка "Начать игру"');
+                status.textContent = 'Игра начинается...';
+                
+                // Создаем простую сетку
+                drawSimpleGrid();
+            });
+            
+            // Обработчик кнопки отладки
+            document.getElementById('debug-btn').addEventListener('click', function() {
+                log('=== Отладка ===');
+                log('Ширина canvas: ' + canvas.width);
+                log('Высота canvas: ' + canvas.height);
+                log('Состояние ctx: ' + (ctx ? 'OK' : 'Ошибка'));
+                
+                // Тест рисования
+                ctx.fillStyle = '#00ff88';
+                ctx.fillRect(200, 200, 50, 50);
+                log('Тестовый квадрат 2 нарисован');
+            });
+            
+            function drawSimpleGrid() {
+                log('Рисуем простую сетку...');
+                
+                // Очищаем canvas
+                ctx.fillStyle = '#1e2129';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Рисуем сетку 4x4
+                const gridSize = 4;
+                const cellSize = 80;
+                const startX = (canvas.width - gridSize * cellSize) / 2;
+                const startY = (canvas.height - gridSize * cellSize) / 2;
+                
+                // Цвета фигур
+                const colors = ['#ff6b6b', '#4a6bff', '#00ff88', '#ffd700'];
+                
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const x = startX + col * cellSize + 5;
+                        const y = startY + row * cellSize + 5;
+                        const size = cellSize - 10;
+                        
+                        // Выбираем цвет
+                        const colorIndex = (row * gridSize + col) % colors.length;
+                        ctx.fillStyle = colors[colorIndex];
+                        
+                        // Рисуем квадрат
+                        ctx.fillRect(x, y, size, size);
+                        
+                        // Закругляем углы
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x, y, size, size);
+                    }
+                }
+                
+                log('Сетка нарисована');
+                status.textContent = 'Сетка 4x4 нарисована! Кликните на квадрат';
+                
+                // Добавляем обработчик кликов
+                canvas.addEventListener('click', function(event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    
+                    log('Клик по координатам: ' + Math.round(x) + ', ' + Math.round(y));
+                    
+                    // Определяем, в какую ячейку кликнули
+                    const col = Math.floor((x - startX) / cellSize);
+                    const row = Math.floor((y - startY) / cellSize);
+                    
+                    if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+                        log('Клик по ячейке: строка ' + row + ', столбец ' + col);
+                        status.textContent = `Выбрана ячейка: ${row},${col}`;
+                        
+                        // Подсвечиваем выбранную ячейку
+                        const highlightX = startX + col * cellSize;
+                        const highlightY = startY + row * cellSize;
+                        
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 5;
+                        ctx.strokeRect(highlightX, highlightY, cellSize, cellSize);
+                    }
+                });
+            }
+            
+            // Автоматически запускаем тест при загрузке
+            setTimeout(() => {
+                log('Автоматический тест запущен');
+                drawSimpleGrid();
+            }, 1000);
+        });
+        
+        // Обработчик ошибок
+        window.addEventListener('error', function(event) {
+            log('ОШИБКА JavaScript: ' + event.message);
+            log('Файл: ' + event.filename);
+            log('Строка: ' + event.lineno);
+        });
+    </script>
 </body>
 </html>
