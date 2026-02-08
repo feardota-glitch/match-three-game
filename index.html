@@ -2,37 +2,91 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Три в ряд</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
         
         body {
             font-family: Arial, sans-serif;
             background: #1a1a2e;
             color: white;
             overflow: hidden;
-            height: 100vh;
+            position: fixed;
             width: 100vw;
+            height: 100vh;
+            touch-action: manipulation;
         }
         
+        /* Canvas для игры - ПОД всеми элементами */
         #gameCanvas {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
+            pointer-events: none; /* Важно: canvas не перехватывает клики */
         }
         
+        /* Игровой HUD - ПОВЕРХ canvas */
+        #gameHUD {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #5656ff;
+        }
+        
+        #gameHUD.hidden {
+            display: none;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1.2rem;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #pauseBtn {
+            background: #5656ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            z-index: 101;
+        }
+        
+        /* Все экраны - ПОВЕРХ всего */
         .screen {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 10;
+            background: rgba(26, 26, 46, 0.98);
+            z-index: 200; /* Выше чем HUD и canvas */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -50,9 +104,18 @@
             max-width: 500px;
             width: 90%;
             text-align: center;
+            border: 2px solid #5656ff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         
-        h1, h2 {
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #ffd166;
+        }
+        
+        h2 {
+            font-size: 2rem;
             margin-bottom: 20px;
             color: #ffd166;
         }
@@ -61,10 +124,10 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            margin: 20px 0;
+            margin: 30px 0;
         }
         
-        button {
+        .screen button {
             background: #5656ff;
             color: white;
             border: none;
@@ -72,34 +135,88 @@
             font-size: 1.2rem;
             border-radius: 10px;
             cursor: pointer;
+            transition: background 0.2s;
         }
         
-        button:hover {
+        .screen button:active {
             background: #4040ff;
+            transform: scale(0.98);
         }
         
-        #gameHUD {
-            position: fixed;
-            top: 0;
-            left: 0;
+        input[type="text"] {
             width: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #5656ff;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        #finalScore {
+            font-size: 2.5rem;
+            color: #ffd166;
+            margin: 20px 0;
+            display: block;
+        }
+        
+        #scoresList {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
             padding: 10px;
-            z-index: 5;
+        }
+        
+        .score-item {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
         
-        #gameHUD.hidden {
-            display: none;
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            .stats {
+                font-size: 1rem;
+                gap: 15px;
+            }
+            
+            .screen button {
+                padding: 12px;
+                font-size: 1.1rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
         }
         
-        .stats {
-            display: flex;
-            gap: 20px;
-            color: white;
-            font-size: 1.1rem;
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+            
+            #gameHUD {
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -110,14 +227,14 @@
     <!-- Игровой HUD -->
     <div id="gameHUD" class="hidden">
         <div class="stats">
-            <span>Очки: <span id="score">0</span></span>
-            <span>Ходы: <span id="moves">30</span></span>
-            <span>Время: <span id="timer">02:00</span></span>
+            <div class="stat">Очки: <span id="score">0</span></div>
+            <div class="stat">Ходы: <span id="moves">30</span></div>
+            <div class="stat">Время: <span id="timer">02:00</span></div>
         </div>
         <button id="pauseBtn">Пауза</button>
     </div>
     
-    <!-- Экран меню -->
+    <!-- Главное меню -->
     <div id="menuScreen" class="screen">
         <div class="content">
             <h1>ТРИ В РЯД</h1>
@@ -126,10 +243,13 @@
                 <button id="scoresBtn">Таблица рекордов</button>
                 <button id="instructionsBtn">Инструкция</button>
             </div>
+            <p style="margin-top: 20px; color: #aaa; font-size: 0.9rem;">
+                Кликните на фигуру, затем на соседнюю для обмена
+            </p>
         </div>
     </div>
     
-    <!-- Экран паузы -->
+    <!-- Пауза -->
     <div id="pauseScreen" class="screen hidden">
         <div class="content">
             <h2>ПАУЗА</h2>
@@ -141,24 +261,24 @@
         </div>
     </div>
     
-    <!-- Экран таблицы рекордов -->
+    <!-- Таблица рекордов -->
     <div id="scoresScreen" class="screen hidden">
         <div class="content">
             <h2>ТАБЛИЦА РЕКОРДОВ</h2>
-            <div id="scoresList" style="margin: 20px 0; min-height: 200px;">
-                <!-- Сюда будут добавляться рекорды -->
-            </div>
+            <div id="scoresList"></div>
             <button id="backFromScoresBtn">Назад</button>
         </div>
     </div>
     
-    <!-- Экран окончания игры -->
+    <!-- Конец игры -->
     <div id="gameOverScreen" class="screen hidden">
         <div class="content">
             <h2>ИГРА ОКОНЧЕНА</h2>
-            <p style="font-size: 1.5rem; margin: 20px 0;">Очки: <span id="finalScore">0</span></p>
-            <input type="text" id="playerName" placeholder="Ваше имя" 
-                   style="width: 100%; padding: 10px; margin: 10px 0; font-size: 1.2rem;">
+            <div style="margin: 20px 0;">
+                <span style="font-size: 1.2rem;">Ваш результат:</span>
+                <span id="finalScore">0</span>
+            </div>
+            <input type="text" id="playerName" placeholder="Введите ваше имя" maxlength="15">
             <div class="buttons">
                 <button id="saveScoreBtn">Сохранить результат</button>
                 <button id="playAgainBtn">Играть снова</button>
@@ -167,15 +287,16 @@
         </div>
     </div>
     
-    <!-- Экран инструкции -->
+    <!-- Инструкция -->
     <div id="instructionsScreen" class="screen hidden">
         <div class="content">
             <h2>ИНСТРУКЦИЯ</h2>
-            <div style="text-align: left; margin: 20px 0;">
-                <p style="margin: 10px 0;">1. Кликните на фигуру</p>
-                <p style="margin: 10px 0;">2. Кликните на соседнюю фигуру для обмена</p>
-                <p style="margin: 10px 0;">3. Составляйте линии из 3+ одинаковых фигур</p>
-                <p style="margin: 10px 0;">4. У вас 30 ходов и 2 минуты!</p>
+            <div style="text-align: left; margin: 20px 0; line-height: 1.6;">
+                <p>1. Кликните на фигуру, чтобы выбрать её</p>
+                <p>2. Кликните на соседнюю фигуру для обмена</p>
+                <p>3. Составляйте линии из 3+ одинаковых фигур</p>
+                <p>4. Каждая фигура даёт 100 очков</p>
+                <p>5. У вас 30 ходов и 2 минуты!</p>
             </div>
             <button id="backFromInstructionsBtn">Назад</button>
         </div>
