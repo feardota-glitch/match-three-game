@@ -25,6 +25,24 @@ body {
     align-items: center;
 }
 
+/* Игровой экран - теперь отдельный элемент */
+.game-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.game-screen.active {
+    opacity: 1;
+    visibility: visible;
+}
+
 #gameCanvas {
     position: absolute;
     top: 0;
@@ -32,8 +50,10 @@ body {
     width: 100%;
     height: 100%;
     z-index: 1;
+    background: #1a1a2e;
 }
 
+/* Все остальные экраны (меню, пауза и т.д.) */
 .screen {
     position: absolute;
     top: 0;
