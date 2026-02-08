@@ -20,7 +20,6 @@ class Game {
         this.explosions = [];
         this.particles = [];
         this.isSoundOn = true;
-        this.gameLoopId = null;
         
         // Цвета фигур
         this.colors = [
@@ -43,6 +42,10 @@ class Game {
         this.loadHighScores();
         this.setupEventListeners();
         this.startGameLoop();
+        
+        // Скрываем игровой экран при запуске
+        document.getElementById('gameScreen').classList.remove('active');
+    }
         
         console.log("Game initialized, state:", this.state);
     }
@@ -227,13 +230,16 @@ class Game {
         console.log("Event listeners set up");
     }
     
-    showScreen(screenName) {
+   showScreen(screenName) {
         console.log("Switching to screen:", screenName);
         
         // Скрыть все экраны
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
+        
+        // Скрыть игровой экран
+        document.getElementById('gameScreen').classList.remove('active');
         
         // Показать нужный экран
         switch(screenName) {
@@ -242,6 +248,7 @@ class Game {
                 this.state = 'MENU';
                 break;
             case 'GAME':
+                // Показываем игровой экран (отдельный, не .screen)
                 document.getElementById('gameScreen').classList.add('active');
                 this.state = 'PLAYING';
                 break;
@@ -264,6 +271,7 @@ class Game {
         }
         
         console.log("Screen switched, new state:", this.state);
+    }
     }
     
     startGame() {
@@ -944,3 +952,4 @@ window.addEventListener('load', () => {
     
     console.log("Game initialization complete");
 });
+
