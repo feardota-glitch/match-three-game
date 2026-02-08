@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Три в ряд</title>
+    <title>3 в ряд</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,296 +13,1017 @@
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
-        
+
         body {
-            font-family: Arial, sans-serif;
-            background: #1a1a2e;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: white;
+            min-height: 100vh;
             overflow: hidden;
-            position: fixed;
-            width: 100vw;
-            height: 100vh;
             touch-action: manipulation;
         }
-        
-        /* Canvas для игры - ПОД всеми элементами */
-        #gameCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none; /* Важно: canvas не перехватывает клики */
-        }
-        
-        /* Игровой HUD - ПОВЕРХ canvas */
-        #gameHUD {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            z-index: 100;
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            border-bottom: 2px solid #5656ff;
+            overflow: hidden;
         }
-        
-        #gameHUD.hidden {
-            display: none;
-        }
-        
-        .stats {
-            display: flex;
-            gap: 20px;
-            font-size: 1.2rem;
-            flex-wrap: wrap;
-        }
-        
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        #pauseBtn {
-            background: #5656ff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            z-index: 101;
-        }
-        
-        /* Все экраны - ПОВЕРХ всего */
+
+        /* Меню */
         .screen {
             position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(26, 26, 46, 0.98);
-            z-index: 200; /* Выше чем HUD и canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            z-index: 10;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+            padding: 20px;
+        }
+
+        .screen.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(90deg, #ff7e5f, #feb47b, #86a8e7, #91eae4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 18px 30px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 12px 0;
+            width: 85%;
+            max-width: 300px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(37, 117, 252, 0.3);
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            gap: 12px;
         }
-        
-        .screen.hidden {
-            display: none;
+
+        .menu-button:hover, .menu-button:active {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(37, 117, 252, 0.4);
         }
-        
-        .content {
-            background: #2a2a3e;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            border: 2px solid #5656ff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+        .menu-button:active {
+            transform: translateY(1px);
         }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #ffd166;
+
+        .menu-button.exit {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            box-shadow: 0 8px 20px rgba(255, 65, 108, 0.3);
         }
-        
-        h2 {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            color: #ffd166;
+
+        .menu-button.exit:hover, .menu-button.exit:active {
+            box-shadow: 0 12px 25px rgba(255, 65, 108, 0.4);
         }
-        
-        .buttons {
+
+        /* Игровое поле */
+        #game-screen {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin: 30px 0;
-        }
-        
-        .screen button {
-            background: #5656ff;
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 1.2rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .screen button:active {
-            background: #4040ff;
-            transform: scale(0.98);
-        }
-        
-        input[type="text"] {
             width: 100%;
-            padding: 15px;
-            margin: 20px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #5656ff;
-            border-radius: 10px;
-            color: white;
-            font-size: 1.2rem;
-            text-align: center;
-        }
-        
-        #finalScore {
-            font-size: 2.5rem;
-            color: #ffd166;
-            margin: 20px 0;
-            display: block;
-        }
-        
-        #scoresList {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 20px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
+            height: 100%;
             padding: 10px;
         }
-        
-        .score-item {
-            padding: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        .game-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 15px 10px;
+            margin-bottom: 10px;
         }
-        
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
+
+        .score-container, .moves-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 12px 20px;
+            min-width: 120px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .score-label, .moves-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .score-value, .moves-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4dccff;
+        }
+
+        .game-board-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 5px;
+            width: 95vw;
+            height: 95vw;
+            max-width: 400px;
+            max-height: 400px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .cell {
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        .gem {
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .gem::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 20%;
+            height: 20%;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        .gem.red { background: linear-gradient(135deg, #ff7e5f, #feb47b); }
+        .gem.blue { background: linear-gradient(135deg, #86a8e7, #91eae4); }
+        .gem.green { background: linear-gradient(135deg, #56ab2f, #a8e063); }
+        .gem.yellow { background: linear-gradient(135deg, #f9d423, #ff4e50); }
+        .gem.purple { background: linear-gradient(135deg, #834d9b, #d04ed6); }
+        .gem.orange { background: linear-gradient(135deg, #ff8008, #ffc837); }
+        .gem.pink { background: linear-gradient(135deg, #ff6a88, #ff99ac); }
+
+        .gem.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+            z-index: 1;
+        }
+
+        .gem.matched {
+            animation: matched 0.5s ease forwards;
+        }
+
+        @keyframes matched {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .gem.moving {
+            z-index: 2;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Таблица лидеров */
+        .leaderboard-container {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .leaderboard-title {
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4dccff;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard-rank {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #feb47b;
+            width: 40px;
+        }
+
+        .leaderboard-name {
+            flex-grow: 1;
+            font-size: 1.2rem;
+        }
+
+        .leaderboard-score {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #4dccff;
+        }
+
+        .no-scores {
+            text-align: center;
+            font-size: 1.2rem;
+            opacity: 0.7;
+            padding: 30px 0;
+        }
+
+        /* Кнопка возврата */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            z-index: 20;
+        }
+
+        .back-button:hover, .back-button:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* Адаптация под iPhone */
+        @media (max-width: 500px) {
+            .logo {
+                font-size: 2.8rem;
             }
             
-            h2 {
-                font-size: 1.8rem;
+            .menu-button {
+                padding: 16px 25px;
+                font-size: 1.2rem;
             }
             
-            .stats {
-                font-size: 1rem;
-                gap: 15px;
+            .game-header {
+                padding: 10px 5px;
             }
             
-            .screen button {
-                padding: 12px;
-                font-size: 1.1rem;
+            .score-container, .moves-container {
+                padding: 10px 15px;
+                min-width: 100px;
             }
             
-            .content {
-                padding: 20px;
+            .score-value, .moves-value {
+                font-size: 1.5rem;
             }
         }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8rem;
+
+        @media (max-height: 700px) {
+            .logo {
+                font-size: 2.5rem;
+                margin-bottom: 10px;
             }
             
-            .stats {
-                flex-direction: column;
-                gap: 8px;
-                align-items: flex-start;
+            .menu-button {
+                padding: 14px 20px;
+                margin: 8px 0;
             }
-            
-            #gameHUD {
-                padding: 10px;
+        }
+
+        /* Анимации появления */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* Сообщение о ходе */
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        /* Эффект для iPhone X и новее */
+        @supports (padding: max(0px)) {
+            #game-container {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
             }
         }
     </style>
 </head>
 <body>
-    <!-- Canvas для игры -->
-    <canvas id="gameCanvas"></canvas>
-    
-    <!-- Игровой HUD -->
-    <div id="gameHUD" class="hidden">
-        <div class="stats">
-            <div class="stat">Очки: <span id="score">0</span></div>
-            <div class="stat">Ходы: <span id="moves">30</span></div>
-            <div class="stat">Время: <span id="timer">02:00</span></div>
+    <div id="game-container">
+        <!-- Главное меню -->
+        <div id="main-menu" class="screen">
+            <h1 class="logo">3 В РЯД</h1>
+            <button id="start-button" class="menu-button fade-in" style="animation-delay: 0.1s">
+                <i class="fas fa-play"></i> Начать игру
+            </button>
+            <button id="leaderboard-button" class="menu-button fade-in" style="animation-delay: 0.2s">
+                <i class="fas fa-trophy"></i> Таблица лидеров
+            </button>
+            <button id="exit-button" class="menu-button exit fade-in" style="animation-delay: 0.3s">
+                <i class="fas fa-sign-out-alt"></i> Выход
+            </button>
         </div>
-        <button id="pauseBtn">Пауза</button>
-    </div>
-    
-    <!-- Главное меню -->
-    <div id="menuScreen" class="screen">
-        <div class="content">
-            <h1>ТРИ В РЯД</h1>
-            <div class="buttons">
-                <button id="startBtn">Начать игру</button>
-                <button id="scoresBtn">Таблица рекордов</button>
-                <button id="instructionsBtn">Инструкция</button>
+
+        <!-- Игровой экран -->
+        <div id="game-screen" class="screen hidden">
+            <button class="back-button" id="back-from-game">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            
+            <div class="game-header">
+                <div class="score-container">
+                    <div class="score-label">ОЧКИ</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                
+                <div class="moves-container">
+                    <div class="moves-label">ХОДЫ</div>
+                    <div class="moves-value" id="moves">15</div>
+                </div>
             </div>
-            <p style="margin-top: 20px; color: #aaa; font-size: 0.9rem;">
-                Кликните на фигуру, затем на соседнюю для обмена
-            </p>
-        </div>
-    </div>
-    
-    <!-- Пауза -->
-    <div id="pauseScreen" class="screen hidden">
-        <div class="content">
-            <h2>ПАУЗА</h2>
-            <div class="buttons">
-                <button id="resumeBtn">Продолжить</button>
-                <button id="restartBtn">Начать заново</button>
-                <button id="menuFromPauseBtn">В меню</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Таблица рекордов -->
-    <div id="scoresScreen" class="screen hidden">
-        <div class="content">
-            <h2>ТАБЛИЦА РЕКОРДОВ</h2>
-            <div id="scoresList"></div>
-            <button id="backFromScoresBtn">Назад</button>
-        </div>
-    </div>
-    
-    <!-- Конец игры -->
-    <div id="gameOverScreen" class="screen hidden">
-        <div class="content">
-            <h2>ИГРА ОКОНЧЕНА</h2>
-            <div style="margin: 20px 0;">
-                <span style="font-size: 1.2rem;">Ваш результат:</span>
-                <span id="finalScore">0</span>
-            </div>
-            <input type="text" id="playerName" placeholder="Введите ваше имя" maxlength="15">
-            <div class="buttons">
-                <button id="saveScoreBtn">Сохранить результат</button>
-                <button id="playAgainBtn">Играть снова</button>
-                <button id="menuFromGameOverBtn">В меню</button>
+            
+            <div class="game-board-container">
+                <div id="game-board"></div>
             </div>
         </div>
-    </div>
-    
-    <!-- Инструкция -->
-    <div id="instructionsScreen" class="screen hidden">
-        <div class="content">
-            <h2>ИНСТРУКЦИЯ</h2>
-            <div style="text-align: left; margin: 20px 0; line-height: 1.6;">
-                <p>1. Кликните на фигуру, чтобы выбрать её</p>
-                <p>2. Кликните на соседнюю фигуру для обмена</p>
-                <p>3. Составляйте линии из 3+ одинаковых фигур</p>
-                <p>4. Каждая фигура даёт 100 очков</p>
-                <p>5. У вас 30 ходов и 2 минуты!</p>
+
+        <!-- Таблица лидеров -->
+        <div id="leaderboard-screen" class="screen hidden">
+            <button class="back-button" id="back-from-leaderboard">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            
+            <h1 class="logo">ТАБЛИЦА ЛИДЕРОВ</h1>
+            
+            <div class="leaderboard-container">
+                <div id="leaderboard-list">
+                    <!-- Записи будут добавляться динамически -->
+                </div>
             </div>
-            <button id="backFromInstructionsBtn">Назад</button>
         </div>
+
+        <!-- Сообщения -->
+        <div id="message" class="message"></div>
     </div>
 
-    <script src="game.js"></script>
+    <!-- Аудио элементы -->
+    <audio id="swap-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="match-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="win-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-trumpet-2018.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="lose-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-sad-game-over-trombone-471.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="click-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // Игровые константы
+        const BOARD_SIZE = 8;
+        const GEM_TYPES = 7;
+        const INITIAL_MOVES = 15;
+        const MATCH_MIN = 3;
+        const POINTS_PER_GEM = 10;
+        const BONUS_MULTIPLIER = 2;
+
+        // Элементы DOM
+        const mainMenu = document.getElementById('main-menu');
+        const gameScreen = document.getElementById('game-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+        const gameBoard = document.getElementById('game-board');
+        const scoreElement = document.getElementById('score');
+        const movesElement = document.getElementById('moves');
+        const messageElement = document.getElementById('message');
+        
+        // Кнопки
+        const startButton = document.getElementById('start-button');
+        const leaderboardButton = document.getElementById('leaderboard-button');
+        const exitButton = document.getElementById('exit-button');
+        const backFromGameButton = document.getElementById('back-from-game');
+        const backFromLeaderboardButton = document.getElementById('back-from-leaderboard');
+        
+        // Аудио элементы
+        const swapSound = document.getElementById('swap-sound');
+        const matchSound = document.getElementById('match-sound');
+        const winSound = document.getElementById('win-sound');
+        const loseSound = document.getElementById('lose-sound');
+        const clickSound = document.getElementById('click-sound');
+        
+        // Игровые переменные
+        let board = [];
+        let selectedGem = null;
+        let score = 0;
+        let moves = INITIAL_MOVES;
+        let isSwapping = false;
+        let isProcessingMatches = false;
+        let gameActive = false;
+        
+        // Инициализация игры
+        function initGame() {
+            // Создаем игровое поле
+            createBoard();
+            renderBoard();
+            
+            // Сбрасываем счет
+            score = 0;
+            moves = INITIAL_MOVES;
+            updateUI();
+            
+            // Находим и удаляем начальные совпадения
+            processMatches();
+        }
+        
+        // Создание игрового поля
+        function createBoard() {
+            board = [];
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                board[row] = [];
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    board[row][col] = getRandomGemType();
+                }
+            }
+            
+            // Убедимся, что нет начальных совпадений
+            while (findMatches().length > 0) {
+                for (let match of findMatches()) {
+                    board[match.row][match.col] = getRandomGemType();
+                }
+            }
+        }
+        
+        // Отрисовка игрового поля
+        function renderBoard() {
+            gameBoard.innerHTML = '';
+            
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    const gem = document.createElement('div');
+                    gem.className = `gem ${getGemColor(board[row][col])}`;
+                    gem.dataset.row = row;
+                    gem.dataset.col = col;
+                    
+                    cell.appendChild(gem);
+                    gameBoard.appendChild(cell);
+                    
+                    // Добавляем обработчики событий
+                    gem.addEventListener('click', () => handleGemClick(row, col));
+                    gem.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        handleGemClick(row, col);
+                    }, { passive: false });
+                }
+            }
+        }
+        
+        // Обработка клика по драгоценности
+        function handleGemClick(row, col) {
+            if (!gameActive || isSwapping || isProcessingMatches) return;
+            
+            playSound(clickSound);
+            
+            const gemElement = getGemElement(row, col);
+            
+            if (!selectedGem) {
+                // Выбираем первую драгоценность
+                selectedGem = { row, col };
+                gemElement.classList.add('selected');
+            } else {
+                // Если кликнули на ту же драгоценность - снимаем выделение
+                if (selectedGem.row === row && selectedGem.col === col) {
+                    gemElement.classList.remove('selected');
+                    selectedGem = null;
+                    return;
+                }
+                
+                // Проверяем, являются ли драгоценности соседями
+                const isNeighbor = 
+                    (Math.abs(selectedGem.row - row) === 1 && selectedGem.col === col) ||
+                    (Math.abs(selectedGem.col - col) === 1 && selectedGem.row === row);
+                
+                if (isNeighbor) {
+                    // Меняем местами выбранные драгоценности
+                    swapGems(selectedGem.row, selectedGem.col, row, col);
+                    selectedGem = null;
+                } else {
+                    // Выбираем другую драгоценность
+                    getGemElement(selectedGem.row, selectedGem.col).classList.remove('selected');
+                    selectedGem = { row, col };
+                    gemElement.classList.add('selected');
+                }
+            }
+        }
+        
+        // Обмен двух драгоценностей местами
+        function swapGems(row1, col1, row2, col2) {
+            isSwapping = true;
+            
+            // Меняем местами в массиве
+            const temp = board[row1][col1];
+            board[row1][col1] = board[row2][col2];
+            board[row2][col2] = temp;
+            
+            // Анимируем перемещение
+            const gem1 = getGemElement(row1, col1);
+            const gem2 = getGemElement(row2, col2);
+            
+            // Получаем позиции элементов
+            const rect1 = gem1.getBoundingClientRect();
+            const rect2 = gem2.getBoundingClientRect();
+            
+            // Вычисляем смещения
+            const deltaX = rect2.left - rect1.left;
+            const deltaY = rect2.top - rect1.top;
+            
+            // Применяем трансформации
+            gem1.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+            gem2.style.transform = `translate(${-deltaX}px, ${-deltaY}px)`;
+            gem1.classList.add('moving');
+            gem2.classList.add('moving');
+            
+            playSound(swapSound);
+            
+            // После анимации меняем классы и проверяем совпадения
+            setTimeout(() => {
+                // Сбрасываем трансформации и обновляем классы цвета
+                gem1.style.transform = '';
+                gem2.style.transform = '';
+                gem1.className = `gem ${getGemColor(board[row1][col1])}`;
+                gem2.className = `gem ${getGemColor(board[row2][col2])}`;
+                gem1.classList.remove('moving');
+                gem2.classList.remove('moving');
+                
+                // Проверяем, есть ли совпадения после обмена
+                const matches = findMatches();
+                
+                if (matches.length > 0) {
+                    // Если есть совпадения, обрабатываем их
+                    moves--;
+                    updateUI();
+                    processMatches();
+                } else {
+                    // Если нет совпадений, возвращаем на место
+                    const temp = board[row1][col1];
+                    board[row1][col1] = board[row2][col2];
+                    board[row2][col2] = temp;
+                    
+                    // Анимируем обратный обмен
+                    gem1.style.transform = `translate(${-deltaX}px, ${-deltaY}px)`;
+                    gem2.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                    gem1.classList.add('moving');
+                    gem2.classList.add('moving');
+                    
+                    setTimeout(() => {
+                        gem1.style.transform = '';
+                        gem2.style.transform = '';
+                        gem1.className = `gem ${getGemColor(board[row1][col1])}`;
+                        gem2.className = `gem ${getGemColor(board[row2][col2])}`;
+                        gem1.classList.remove('moving');
+                        gem2.classList.remove('moving');
+                        isSwapping = false;
+                        
+                        // Показываем сообщение
+                        showMessage("Нет совпадений!");
+                    }, 300);
+                }
+            }, 300);
+        }
+        
+        // Поиск совпадений на поле
+        function findMatches() {
+            const matches = [];
+            
+            // Проверяем горизонтальные совпадения
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE - 2; col++) {
+                    const gemType = board[row][col];
+                    if (gemType === -1) continue;
+                    
+                    if (gemType === board[row][col + 1] && gemType === board[row][col + 2]) {
+                        // Найдено совпадение из 3+
+                        let matchLength = 3;
+                        while (col + matchLength < BOARD_SIZE && board[row][col + matchLength] === gemType) {
+                            matchLength++;
+                        }
+                        
+                        // Добавляем все драгоценности в совпадение
+                        for (let i = 0; i < matchLength; i++) {
+                            matches.push({ row, col: col + i });
+                        }
+                        
+                        col += matchLength - 1;
+                    }
+                }
+            }
+            
+            // Проверяем вертикальные совпадения
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                for (let row = 0; row < BOARD_SIZE - 2; row++) {
+                    const gemType = board[row][col];
+                    if (gemType === -1) continue;
+                    
+                    if (gemType === board[row + 1][col] && gemType === board[row + 2][col]) {
+                        // Найдено совпадение из 3+
+                        let matchLength = 3;
+                        while (row + matchLength < BOARD_SIZE && board[row + matchLength][col] === gemType) {
+                            matchLength++;
+                        }
+                        
+                        // Добавляем все драгоценности в совпадение
+                        for (let i = 0; i < matchLength; i++) {
+                            matches.push({ row: row + i, col });
+                        }
+                        
+                        row += matchLength - 1;
+                    }
+                }
+            }
+            
+            // Убираем дубликаты (если драгоценность входит и в горизонтальное и вертикальное совпадение)
+            const uniqueMatches = [];
+            const seen = new Set();
+            
+            for (const match of matches) {
+                const key = `${match.row},${match.col}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueMatches.push(match);
+                }
+            }
+            
+            return uniqueMatches;
+        }
+        
+        // Обработка совпадений
+        function processMatches() {
+            const matches = findMatches();
+            
+            if (matches.length === 0) {
+                // Если нет совпадений, проверяем условие окончания игры
+                checkGameEnd();
+                isSwapping = false;
+                return;
+            }
+            
+            isProcessingMatches = true;
+            
+            // Помечаем совпавшие драгоценности
+            for (const match of matches) {
+                const gemElement = getGemElement(match.row, match.col);
+                gemElement.classList.add('matched');
+            }
+            
+            playSound(matchSound);
+            
+            // Удаляем совпавшие драгоценности и добавляем очки
+            setTimeout(() => {
+                // Увеличиваем счет
+                const points = matches.length * POINTS_PER_GEM;
+                // Бонус за более чем 3 в ряд
+                const bonus = matches.length > MATCH_MIN ? (matches.length - MATCH_MIN) * BONUS_MULTIPLIER * POINTS_PER_GEM : 0;
+                score += points + bonus;
+                
+                // Удаляем совпавшие драгоценности
+                for (const match of matches) {
+                    board[match.row][match.col] = -1;
+                }
+                
+                updateUI();
+                
+                // Показываем сообщение о бонусе
+                if (bonus > 0) {
+                    showMessage(`Бонус: ${bonus} очков!`);
+                }
+                
+                // Обновляем отображение
+                renderBoard();
+                
+                // Заполняем пустые ячейки
+                dropGems();
+            }, 500);
+        }
+        
+        // Падение драгоценностей вниз
+        function dropGems() {
+            // Перемещаем драгоценности вниз
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                let emptySpaces = 0;
+                
+                // Проходим снизу вверх
+                for (let row = BOARD_SIZE - 1; row >= 0; row--) {
+                    if (board[row][col] === -1) {
+                        emptySpaces++;
+                    } else if (emptySpaces > 0) {
+                        // Перемещаем драгоценность вниз
+                        board[row + emptySpaces][col] = board[row][col];
+                        board[row][col] = -1;
+                    }
+                }
+                
+                // Заполняем верхние пустые ячейки новыми драгоценностями
+                for (let row = 0; row < emptySpaces; row++) {
+                    board[row][col] = getRandomGemType();
+                }
+            }
+            
+            // Обновляем отображение
+            setTimeout(() => {
+                renderBoard();
+                
+                // Проверяем новые совпадения
+                setTimeout(() => {
+                    processMatches();
+                }, 300);
+            }, 300);
+        }
+        
+        // Проверка окончания игры
+        function checkGameEnd() {
+            isProcessingMatches = false;
+            
+            if (moves <= 0) {
+                // Игра окончена
+                gameActive = false;
+                
+                // Проверяем, достигнут ли минимальный счет для таблицы лидеров
+                const minScoreForLeaderboard = 100;
+                
+                if (score >= minScoreForLeaderboard) {
+                    // Показываем сообщение о победе
+                    showMessage("Игра окончена! Вы попали в таблицу лидеров!");
+                    playSound(winSound);
+                    
+                    // Добавляем результат в таблицу лидеров
+                    setTimeout(() => {
+                        addToLeaderboard(score);
+                        showScreen(leaderboardScreen);
+                    }, 1500);
+                } else {
+                    // Показываем сообщение о проигрыше
+                    showMessage("Игра окончена! Слишком мало очков.");
+                    playSound(loseSound);
+                    
+                    // Возвращаем в меню через 2 секунды
+                    setTimeout(() => {
+                        showScreen(mainMenu);
+                    }, 2000);
+                }
+            } else {
+                // Игра продолжается
+                gameActive = true;
+            }
+        }
+        
+        // Вспомогательные функции
+        function getRandomGemType() {
+            return Math.floor(Math.random() * GEM_TYPES);
+        }
+        
+        function getGemColor(type) {
+            const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink'];
+            return colors[type] || 'red';
+        }
+        
+        function getGemElement(row, col) {
+            return document.querySelector(`.gem[data-row="${row}"][data-col="${col}"]`);
+        }
+        
+        function updateUI() {
+            scoreElement.textContent = score;
+            movesElement.textContent = moves;
+        }
+        
+        function showMessage(text) {
+            messageElement.textContent = text;
+            messageElement.classList.add('show');
+            
+            setTimeout(() => {
+                messageElement.classList.remove('show');
+            }, 1500);
+        }
+        
+        function playSound(audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(e => console.log("Аудио не может быть воспроизведено:", e));
+        }
+        
+        // Управление экранами
+        function showScreen(screen) {
+            // Скрываем все экраны
+            mainMenu.classList.add('hidden');
+            gameScreen.classList.add('hidden');
+            leaderboardScreen.classList.add('hidden');
+            
+            // Показываем нужный экран
+            screen.classList.remove('hidden');
+            
+            // Если показываем игровой экран, инициализируем игру
+            if (screen === gameScreen) {
+                gameActive = true;
+                initGame();
+            }
+            
+            // Если показываем таблицу лидеров, загружаем ее
+            if (screen === leaderboardScreen) {
+                loadLeaderboard();
+            }
+        }
+        
+        // Таблица лидеров
+        function loadLeaderboard() {
+            const leaderboardList = document.getElementById('leaderboard-list');
+            leaderboardList.innerHTML = '';
+            
+            // Получаем данные из localStorage
+            let leaderboard = JSON.parse(localStorage.getItem('match3-leaderboard')) || [];
+            
+            // Сортируем по убыванию очков
+            leaderboard.sort((a, b) => b.score - a.score);
+            
+            // Ограничиваем топ-10
+            leaderboard = leaderboard.slice(0, 10);
+            
+            if (leaderboard.length === 0) {
+                leaderboardList.innerHTML = '<div class="no-scores">Пока нет результатов</div>';
+                return;
+            }
+            
+            // Отображаем таблицу лидеров
+            leaderboard.forEach((entry, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item fade-in';
+                item.style.animationDelay = `${index * 0.1}s`;
+                
+                item.innerHTML = `
+                    <div class="leaderboard-rank">${index + 1}</div>
+                    <div class="leaderboard-name">${entry.name}</div>
+                    <div class="leaderboard-score">${entry.score}</div>
+                `;
+                
+                leaderboardList.appendChild(item);
+            });
+        }
+        
+        function addToLeaderboard(score) {
+            // Запрашиваем имя игрока
+            const playerName = prompt('Поздравляем! Вы попали в таблицу лидеров!\nВведите ваше имя:', 'Игрок');
+            
+            if (!playerName) return;
+            
+            // Получаем текущую таблицу лидеров
+            let leaderboard = JSON.parse(localStorage.getItem('match3-leaderboard')) || [];
+            
+            // Добавляем новый результат
+            leaderboard.push({
+                name: playerName.substring(0, 15), // Ограничиваем длину имени
+                score: score,
+                date: new Date().toLocaleDateString()
+            });
+            
+            // Сохраняем обновленную таблицу
+            localStorage.setItem('match3-leaderboard', JSON.stringify(leaderboard));
+        }
+        
+        // Обработчики событий
+        startButton.addEventListener('click', () => {
+            playSound(clickSound);
+            showScreen(gameScreen);
+        });
+        
+        leaderboardButton.addEventListener('click', () => {
+            playSound(clickSound);
+            showScreen(leaderboardScreen);
+        });
+        
+        exitButton.addEventListener('click', () => {
+            playSound(clickSound);
+            // В веб-версии выход просто закрывает приложение
+            showMessage("Для выхода закройте вкладку браузера");
+        });
+        
+        backFromGameButton.addEventListener('click', () => {
+            playSound(clickSound);
+            gameActive = false;
+            showScreen(mainMenu);
+        });
+        
+        backFromLeaderboardButton.addEventListener('click', () => {
+            playSound(clickSound);
+            showScreen(mainMenu);
+        });
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            // Показываем главное меню
+            showScreen(mainMenu);
+            
+            // Для мобильных устройств отключаем контекстное меню
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        });
+    </script>
 </body>
 </html>
