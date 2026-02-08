@@ -1,12 +1,8 @@
 class Game {
     constructor() {
-        // Получаем canvas и контекст
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        
-        // Настройка размеров canvas
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        this.resizeCanvas();
         
         // Состояния игры
         this.STATE = {
@@ -23,11 +19,11 @@ class Game {
         this.score = 0;
         this.moves = 30;
         this.timeLeft = 120;
+        this.comboCounter = 1;
+        this.isAnimating = false;
         
-        // Параметры
-        this.GRID_SIZE = 8;
-        this.CELL_SIZE = 60;
-        this.colors = [
+        // Цвета фигур
+        this.COLORS = [
             {r: 255, g: 89, b: 94},    // Красный
             {r: 255, g: 202, b: 58},   // Желтый
             {r: 138, g: 201, b: 38},   // Зеленый
@@ -36,188 +32,209 @@ class Game {
             {r: 255, g: 157, b: 129},  // Оранжевый
         ];
         
+        // Параметры поля (будут вычисляться динамически)
+        this.GRID_SIZE = 8;
+        this.cellSize = 0;
+        this.gridOffsetX = 0;
+        this.gridOffsetY = 0;
+        
         // Инициализация
+        this.calculateSizes();
         this.initGrid();
         this.setupEventListeners();
-        this.gameLoop();
+        this.startGameLoop();
         
         console.log("Игра инициализирована");
     }
     
+    calculateSizes() {
+        // Вычисляем размер клетки в зависимости от размера экрана
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        
+        // Оставляем место для HUD (80px сверху) и отступы (40px)
+        const availableHeight = screenHeight - 80 - 40;
+        const availableWidth = screenWidth - 40;
+        
+        // Вычисляем максимальный размер клетки
+        const maxCellSizeByHeight = Math.floor(availableHeight / this.GRID_SIZE);
+        const maxCellSizeByWidth = Math.floor(availableWidth / this.GRID_SIZE);
+        
+        // Берем минимальный из двух, чтобы все влезало
+        this.cellSize = Math.min(maxCellSizeByHeight, maxCellSizeByWidth, 60);
+        
+        // Центрируем сетку
+        this.gridOffsetX = (screenWidth - this.GRID_SIZE * this.cellSize) / 2;
+        this.gridOffsetY = 80; // Отступ для HUD
+        
+        console.log("Размеры:", {
+            screenWidth, screenHeight,
+            cellSize: this.cellSize,
+            offsetX: this.gridOffsetX,
+            offsetY: this.gridOffsetY
+        });
+    }
+    
+    resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.calculateSizes();
+        
+        // Обновляем позиции всех фигур
+        if (this.grid.length > 0) {
+            this.updateGemPositions();
+        }
+    }
+    
+    updateGemPositions() {
+        for (let row = 0; row < this.GRID_SIZE; row++) {
+            for (let col = 0; col < this.GRID_SIZE; col++) {
+                const gem = this.grid[row][col];
+                if (gem) {
+                    gem.x = this.gridOffsetX + col * this.cellSize;
+                    gem.y = this.gridOffsetY + row * this.cellSize;
+                    gem.targetY = gem.y;
+                    gem.size = this.cellSize - 10;
+                }
+            }
+        }
+    }
+    
     initGrid() {
         this.grid = [];
-        const offsetX = (this.canvas.width - this.GRID_SIZE * this.CELL_SIZE) / 2;
-        const offsetY = 100;
-        
         for (let row = 0; row < this.GRID_SIZE; row++) {
             this.grid[row] = [];
             for (let col = 0; col < this.GRID_SIZE; col++) {
-                const colorIdx = Math.floor(Math.random() * this.colors.length);
+                // Выбираем случайный цвет, избегая начальных совпадений
+                let availableColors = [...Array(this.COLORS.length).keys()];
+                
+                // Проверяем слева
+                if (col >= 2) {
+                    if (this.grid[row][col - 1] && this.grid[row][col - 2]) {
+                        if (this.grid[row][col - 1].colorIdx === this.grid[row][col - 2].colorIdx) {
+                            const index = availableColors.indexOf(this.grid[row][col - 1].colorIdx);
+                            if (index > -1) availableColors.splice(index, 1);
+                        }
+                    }
+                }
+                
+                // Проверяем сверху
+                if (row >= 2) {
+                    if (this.grid[row - 1][col] && this.grid[row - 2][col]) {
+                        if (this.grid[row - 1][col].colorIdx === this.grid[row - 2][col].colorIdx) {
+                            const index = availableColors.indexOf(this.grid[row - 1][col].colorIdx);
+                            if (index > -1) availableColors.splice(index, 1);
+                        }
+                    }
+                }
+                
+                const colorIdx = availableColors[Math.floor(Math.random() * availableColors.length)];
                 this.grid[row][col] = {
                     row, col,
                     colorIdx,
-                    x: offsetX + col * this.CELL_SIZE,
-                    y: offsetY + row * this.CELL_SIZE,
-                    selected: false
+                    x: this.gridOffsetX + col * this.cellSize,
+                    y: this.gridOffsetY + row * this.cellSize,
+                    targetY: this.gridOffsetY + row * this.cellSize,
+                    selected: false,
+                    size: this.cellSize - 10
                 };
             }
         }
     }
     
     setupEventListeners() {
-        console.log("Настройка обработчиков событий...");
+        window.addEventListener('resize', () => this.resizeCanvas());
         
         // Клики по canvas
         this.canvas.addEventListener('click', (e) => {
-            if (this.state !== this.STATE.PLAYING) return;
-            
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            console.log("Клик на canvas:", x, y);
-            
-            this.handleCanvasClick(x, y);
+            if (this.state !== this.STATE.PLAYING || this.isAnimating) return;
+            this.handleCanvasClick(e);
         });
         
-        // Кнопка старта
-        document.getElementById('startBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Начать игру' нажата");
-            this.startGame();
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.state !== this.STATE.PLAYING || this.isAnimating) return;
+            this.handleCanvasClick(e.touches[0]);
         });
         
-        // Кнопка паузы
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Пауза' нажата");
-            this.showScreen('pauseScreen');
-            this.state = this.STATE.PAUSED;
-        });
-        
-        // Кнопка продолжения
-        document.getElementById('resumeBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Продолжить' нажата");
-            this.hideAllScreens();
-            this.state = this.STATE.PLAYING;
-        });
-        
-        // Кнопка рестарта
-        document.getElementById('restartBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Начать заново' нажата");
-            this.startGame();
-        });
-        
-        // Кнопка возврата в меню из паузы
-        document.getElementById('menuFromPauseBtn').addEventListener('click', () => {
-            console.log("Кнопка 'В меню' из паузы нажата");
-            this.showScreen('menuScreen');
-            this.state = this.STATE.MENU;
-        });
-        
-        // Таблица рекордов
+        // Кнопки
+        document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('pauseBtn').addEventListener('click', () => this.pauseGame());
+        document.getElementById('resumeBtn').addEventListener('click', () => this.resumeGame());
+        document.getElementById('restartBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('menuFromPauseBtn').addEventListener('click', () => this.showScreen('menuScreen'));
         document.getElementById('scoresBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Таблица рекордов' нажата");
+            this.updateScoresDisplay();
             this.showScreen('scoresScreen');
         });
-        
-        document.getElementById('backFromScoresBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Назад' из рекордов нажата");
-            this.showScreen('menuScreen');
-        });
-        
-        // Инструкция
-        document.getElementById('instructionsBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Инструкция' нажата");
-            this.showScreen('instructionsScreen');
-        });
-        
-        document.getElementById('backFromInstructionsBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Назад' из инструкции нажата");
-            this.showScreen('menuScreen');
-        });
-        
-        // Окончание игры
-        document.getElementById('saveScoreBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Сохранить результат' нажата");
-            this.saveScore();
-        });
-        
-        document.getElementById('playAgainBtn').addEventListener('click', () => {
-            console.log("Кнопка 'Играть снова' нажата");
-            this.startGame();
-        });
-        
-        document.getElementById('menuFromGameOverBtn').addEventListener('click', () => {
-            console.log("Кнопка 'В меню' из окончания игры нажата");
-            this.showScreen('menuScreen');
-            this.state = this.STATE.MENU;
-        });
+        document.getElementById('backFromScoresBtn').addEventListener('click', () => this.showScreen('menuScreen'));
+        document.getElementById('instructionsBtn').addEventListener('click', () => this.showScreen('instructionsScreen'));
+        document.getElementById('backFromInstructionsBtn').addEventListener('click', () => this.showScreen('menuScreen'));
+        document.getElementById('saveScoreBtn').addEventListener('click', () => this.saveScore());
+        document.getElementById('playAgainBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('menuFromGameOverBtn').addEventListener('click', () => this.showScreen('menuScreen'));
     }
     
     showScreen(screenId) {
-        // Скрыть все экраны
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.add('hidden');
         });
-        
-        // Показать нужный экран
         document.getElementById(screenId).classList.remove('hidden');
         
-        // Скрыть HUD если показываем не игровой экран
-        if (screenId !== 'gameScreen') {
+        // Показываем/скрываем HUD
+        if (screenId === 'menuScreen' || screenId === 'pauseScreen' || 
+            screenId === 'scoresScreen' || screenId === 'gameOverScreen' || 
+            screenId === 'instructionsScreen') {
             document.getElementById('gameHUD').classList.add('hidden');
+        } else {
+            document.getElementById('gameHUD').classList.remove('hidden');
         }
     }
     
-    hideAllScreens() {
-        // Скрыть все UI экраны
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.add('hidden');
-        });
-        
-        // Показать HUD
-        document.getElementById('gameHUD').classList.remove('hidden');
-    }
-    
     startGame() {
-        console.log("Запуск игры...");
-        
-        // Сброс состояния
         this.score = 0;
         this.moves = 30;
         this.timeLeft = 120;
+        this.comboCounter = 1;
         this.selectedGem = null;
         this.state = this.STATE.PLAYING;
+        this.isAnimating = false;
         
-        // Инициализация сетки
+        this.calculateSizes();
         this.initGrid();
-        
-        // Обновить отображение
         this.updateDisplay();
-        
-        // Показать игровой экран
-        this.hideAllScreens();
+        this.showScreen('menuScreen'); // Сначала скрываем меню
+        document.getElementById('gameHUD').classList.remove('hidden');
         
         console.log("Игра начата");
     }
     
-    handleCanvasClick(x, y) {
-        console.log("Обработка клика в игре:", x, y);
-        
-        const offsetX = (this.canvas.width - this.GRID_SIZE * this.CELL_SIZE) / 2;
-        const offsetY = 100;
+    pauseGame() {
+        this.state = this.STATE.PAUSED;
+        this.showScreen('pauseScreen');
+    }
+    
+    resumeGame() {
+        this.state = this.STATE.PLAYING;
+        this.showScreen('menuScreen'); // Скрываем экран паузы
+        document.getElementById('gameHUD').classList.remove('hidden');
+    }
+    
+    handleCanvasClick(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
         
         // Проверяем, кликнули ли внутри сетки
-        if (x < offsetX || y < offsetY || 
-            x > offsetX + this.GRID_SIZE * this.CELL_SIZE || 
-            y > offsetY + this.GRID_SIZE * this.CELL_SIZE) {
+        if (x < this.gridOffsetX || y < this.gridOffsetY || 
+            x > this.gridOffsetX + this.GRID_SIZE * this.cellSize || 
+            y > this.gridOffsetY + this.GRID_SIZE * this.cellSize) {
             return;
         }
         
         // Определяем столбец и строку
-        const col = Math.floor((x - offsetX) / this.CELL_SIZE);
-        const row = Math.floor((y - offsetY) / this.CELL_SIZE);
-        
-        console.log("Клик по ячейке:", row, col);
+        const col = Math.floor((x - this.gridOffsetX) / this.cellSize);
+        const row = Math.floor((y - this.gridOffsetY) / this.cellSize);
         
         const gem = this.grid[row][col];
         
@@ -252,29 +269,37 @@ class Game {
         this.grid[gem1.row][gem1.col] = gem2;
         this.grid[gem2.row][gem2.col] = gem1;
         
-        // Обновляем координаты
+        // Обновляем координаты фигур
         gem1.row = gem2.row;
         gem1.col = gem2.col;
         gem2.row = tempRow;
         gem2.col = tempCol;
+        
+        // Обновляем позиции для отрисовки
+        gem1.x = this.gridOffsetX + gem1.col * this.cellSize;
+        gem1.y = this.gridOffsetY + gem1.row * this.cellSize;
+        gem2.x = this.gridOffsetX + gem2.col * this.cellSize;
+        gem2.y = this.gridOffsetY + gem2.row * this.cellSize;
         
         // Снимаем выделение
         gem1.selected = false;
         gem2.selected = false;
         this.selectedGem = null;
         
-        // Уменьшаем ходы
         this.moves--;
         
         // Проверяем совпадения
         const matches = this.findMatches();
         
         if (matches.length > 0) {
-            // Начисляем очки
-            this.score += matches.length * 100;
-            this.removeMatches(matches);
+            this.isAnimating = true;
+            setTimeout(() => {
+                this.removeMatches(matches);
+                this.checkAdditionalMatches();
+            }, 300);
         } else {
             // Возвращаем фигуры обратно
+            this.isAnimating = true;
             setTimeout(() => {
                 this.grid[gem1.row][gem1.col] = gem2;
                 this.grid[gem2.row][gem2.col] = gem1;
@@ -286,27 +311,25 @@ class Game {
                 gem2.row = tempR;
                 gem2.col = tempC;
                 
+                // Обновляем позиции
+                gem1.x = this.gridOffsetX + gem1.col * this.cellSize;
+                gem1.y = this.gridOffsetY + gem1.row * this.cellSize;
+                gem2.x = this.gridOffsetX + gem2.col * this.cellSize;
+                gem2.y = this.gridOffsetY + gem2.row * this.cellSize;
+                
                 this.moves++; // Возвращаем ход
+                this.isAnimating = false;
                 this.updateDisplay();
             }, 300);
         }
         
         this.updateDisplay();
-        
-        // Проверяем конец игры
-        if (this.moves <= 0) {
-            setTimeout(() => {
-                this.state = this.STATE.GAME_OVER;
-                document.getElementById('finalScore').textContent = this.score;
-                this.showScreen('gameOverScreen');
-            }, 500);
-        }
     }
     
     findMatches() {
-        const matches = [];
+        const matches = new Set();
         
-        // Проверяем горизонтали
+        // Проверяем горизонтальные совпадения
         for (let row = 0; row < this.GRID_SIZE; row++) {
             for (let col = 0; col < this.GRID_SIZE - 2; col++) {
                 const gem1 = this.grid[row][col];
@@ -316,14 +339,14 @@ class Game {
                 if (gem1 && gem2 && gem3 &&
                     gem1.colorIdx === gem2.colorIdx &&
                     gem2.colorIdx === gem3.colorIdx) {
-                    matches.push({row, col});
-                    matches.push({row, col: col + 1});
-                    matches.push({row, col: col + 2});
+                    matches.add(`${row},${col}`);
+                    matches.add(`${row},${col + 1}`);
+                    matches.add(`${row},${col + 2}`);
                 }
             }
         }
         
-        // Проверяем вертикали
+        // Проверяем вертикальные совпадения
         for (let col = 0; col < this.GRID_SIZE; col++) {
             for (let row = 0; row < this.GRID_SIZE - 2; row++) {
                 const gem1 = this.grid[row][col];
@@ -333,29 +356,32 @@ class Game {
                 if (gem1 && gem2 && gem3 &&
                     gem1.colorIdx === gem2.colorIdx &&
                     gem2.colorIdx === gem3.colorIdx) {
-                    matches.push({row, col});
-                    matches.push({row: row + 1, col});
-                    matches.push({row: row + 2, col});
+                    matches.add(`${row},${col}`);
+                    matches.add(`${row + 1},${col}`);
+                    matches.add(`${row + 2},${col}`);
                 }
             }
         }
         
-        // Убираем дубликаты
-        const uniqueMatches = [];
-        const seen = new Set();
-        
-        matches.forEach(match => {
-            const key = `${match.row},${match.col}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueMatches.push(match);
-            }
+        // Преобразуем обратно в массив объектов
+        return Array.from(matches).map(str => {
+            const [row, col] = str.split(',').map(Number);
+            return {row, col};
         });
-        
-        return uniqueMatches;
     }
     
     removeMatches(matches) {
+        if (matches.length === 0) return;
+        
+        console.log("Удаляем совпадения:", matches.length);
+        
+        // Увеличиваем комбо
+        this.comboCounter++;
+        
+        // Начисляем очки
+        const points = matches.length * 100 * this.comboCounter;
+        this.score += points;
+        
         // Удаляем совпадения
         matches.forEach(({row, col}) => {
             this.grid[row][col] = null;
@@ -363,37 +389,69 @@ class Game {
         
         // Заполняем пустые места
         setTimeout(() => {
+            // Для каждого столбца
             for (let col = 0; col < this.GRID_SIZE; col++) {
-                let emptySpaces = 0;
-                
-                // Опускаем фигуры вниз
+                // Собираем все существующие фигуры в столбце снизу вверх
+                const existingGems = [];
                 for (let row = this.GRID_SIZE - 1; row >= 0; row--) {
-                    if (!this.grid[row][col]) {
-                        emptySpaces++;
-                    } else if (emptySpaces > 0) {
-                        const gem = this.grid[row][col];
-                        gem.row += emptySpaces;
-                        this.grid[row + emptySpaces][col] = gem;
-                        this.grid[row][col] = null;
+                    if (this.grid[row][col]) {
+                        existingGems.push(this.grid[row][col]);
                     }
                 }
                 
-                // Создаем новые фигуры сверху
-                for (let i = 0; i < emptySpaces; i++) {
-                    const row = emptySpaces - i - 1;
-                    const colorIdx = Math.floor(Math.random() * this.colors.length);
+                // Очищаем столбец
+                for (let row = 0; row < this.GRID_SIZE; row++) {
+                    this.grid[row][col] = null;
+                }
+                
+                // Заполняем столбец снизу существующими фигурами
+                let rowIndex = this.GRID_SIZE - 1;
+                for (const gem of existingGems) {
+                    gem.row = rowIndex;
+                    gem.col = col;
+                    gem.x = this.gridOffsetX + col * this.cellSize;
+                    gem.y = this.gridOffsetY + rowIndex * this.cellSize;
+                    gem.targetY = gem.y;
+                    this.grid[rowIndex][col] = gem;
+                    rowIndex--;
+                }
+                
+                // Добавляем новые фигуры сверху
+                for (let row = rowIndex; row >= 0; row--) {
+                    const colorIdx = Math.floor(Math.random() * this.COLORS.length);
                     this.grid[row][col] = {
                         row, col,
                         colorIdx,
-                        x: (this.canvas.width - this.GRID_SIZE * this.CELL_SIZE) / 2 + col * this.CELL_SIZE,
-                        y: 100 + row * this.CELL_SIZE,
-                        selected: false
+                        x: this.gridOffsetX + col * this.cellSize,
+                        y: this.gridOffsetY - (this.GRID_SIZE - row) * this.cellSize, // Начинаем сверху
+                        targetY: this.gridOffsetY + row * this.cellSize,
+                        selected: false,
+                        size: this.cellSize - 10
                     };
                 }
             }
             
             this.updateDisplay();
         }, 300);
+    }
+    
+    checkAdditionalMatches() {
+        setTimeout(() => {
+            const newMatches = this.findMatches();
+            if (newMatches.length > 0) {
+                this.removeMatches(newMatches);
+                this.checkAdditionalMatches();
+            } else {
+                this.isAnimating = false;
+                
+                // Проверяем конец игры
+                if (this.moves <= 0 || this.timeLeft <= 0) {
+                    this.state = this.STATE.GAME_OVER;
+                    document.getElementById('finalScore').textContent = this.score;
+                    this.showScreen('gameOverScreen');
+                }
+            }
+        }, 500);
     }
     
     updateDisplay() {
@@ -404,24 +462,15 @@ class Game {
         const seconds = Math.floor(this.timeLeft % 60);
         document.getElementById('timer').textContent = 
             `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    
-    saveScore() {
-        const name = document.getElementById('playerName').value.trim() || 'Игрок';
-        const score = this.score;
         
-        // Сохраняем в localStorage
-        const scores = JSON.parse(localStorage.getItem('match3Scores') || '[]');
-        scores.push({name, score, date: new Date().toLocaleDateString()});
-        scores.sort((a, b) => b.score - a.score);
-        
-        // Оставляем топ-10
-        const topScores = scores.slice(0, 10);
-        localStorage.setItem('match3Scores', JSON.stringify(topScores));
-        
-        // Обновляем отображение таблицы
-        this.updateScoresDisplay();
-        this.showScreen('scoresScreen');
+        // Комбо
+        const comboDisplay = document.getElementById('comboDisplay');
+        if (this.comboCounter > 1) {
+            comboDisplay.textContent = `Комбо: x${this.comboCounter}`;
+            comboDisplay.style.display = 'block';
+        } else {
+            comboDisplay.style.display = 'none';
+        }
     }
     
     updateScoresDisplay() {
@@ -438,7 +487,51 @@ class Game {
             `;
         });
         
-        scoresList.innerHTML = html || '<p style="color: #888;">Рекордов пока нет</p>';
+        scoresList.innerHTML = html || '<p style="color: #888; text-align: center;">Рекордов пока нет</p>';
+    }
+    
+    saveScore() {
+        const name = document.getElementById('playerName').value.trim() || 'Игрок';
+        
+        if (name) {
+            const scores = JSON.parse(localStorage.getItem('match3Scores') || '[]');
+            scores.push({name, score: this.score, date: new Date().toLocaleDateString()});
+            scores.sort((a, b) => b.score - a.score);
+            
+            // Оставляем топ-10
+            const topScores = scores.slice(0, 10);
+            localStorage.setItem('match3Scores', JSON.stringify(topScores));
+            
+            this.updateScoresDisplay();
+            this.showScreen('scoresScreen');
+            document.getElementById('playerName').value = '';
+        }
+    }
+    
+    update() {
+        if (this.state === this.STATE.PLAYING) {
+            this.timeLeft -= 1/60; // 60 FPS
+            if (this.timeLeft < 0) this.timeLeft = 0;
+            
+            // Проверяем конец игры по времени
+            if (this.timeLeft <= 0 && !this.isAnimating) {
+                this.state = this.STATE.GAME_OVER;
+                document.getElementById('finalScore').textContent = this.score;
+                this.showScreen('gameOverScreen');
+            }
+            
+            // Анимация падения фигур
+            for (let row = 0; row < this.GRID_SIZE; row++) {
+                for (let col = 0; col < this.GRID_SIZE; col++) {
+                    const gem = this.grid[row][col];
+                    if (gem && Math.abs(gem.y - gem.targetY) > 0.5) {
+                        gem.y += (gem.targetY - gem.y) * 0.3;
+                    }
+                }
+            }
+            
+            this.updateDisplay();
+        }
     }
     
     draw() {
@@ -448,16 +541,13 @@ class Game {
         
         // Рисуем только в игровом состоянии
         if (this.state === this.STATE.PLAYING || this.state === this.STATE.PAUSED) {
-            const offsetX = (this.canvas.width - this.GRID_SIZE * this.CELL_SIZE) / 2;
-            const offsetY = 100;
-            
             // Рисуем фон сетки
             this.ctx.fillStyle = '#2a2a3e';
             this.ctx.fillRect(
-                offsetX - 10,
-                offsetY - 10,
-                this.GRID_SIZE * this.CELL_SIZE + 20,
-                this.GRID_SIZE * this.CELL_SIZE + 20
+                this.gridOffsetX - 10,
+                this.gridOffsetY - 10,
+                this.GRID_SIZE * this.cellSize + 20,
+                this.GRID_SIZE * this.cellSize + 20
             );
             
             // Рисуем фигуры
@@ -473,9 +563,9 @@ class Game {
     }
     
     drawGem(gem) {
-        const color = this.colors[gem.colorIdx];
-        const size = this.CELL_SIZE - 10;
-        const padding = (this.CELL_SIZE - size) / 2;
+        const color = this.COLORS[gem.colorIdx];
+        const size = gem.size || (this.cellSize - 10);
+        const padding = (this.cellSize - size) / 2;
         
         // Свечение если выбрано
         if (gem.selected) {
@@ -524,32 +614,36 @@ class Game {
         this.ctx.fill();
     }
     
-    gameLoop() {
-        // Обновление времени
-        if (this.state === this.STATE.PLAYING) {
-            this.timeLeft -= 1/60; // 60 FPS
-            if (this.timeLeft < 0) this.timeLeft = 0;
-            
-            // Проверяем конец игры по времени
-            if (this.timeLeft <= 0) {
-                this.state = this.STATE.GAME_OVER;
-                document.getElementById('finalScore').textContent = this.score;
-                this.showScreen('gameOverScreen');
-            }
-            
-            this.updateDisplay();
-        }
-        
-        // Отрисовка
-        this.draw();
-        
-        // Следующий кадр
-        requestAnimationFrame(() => this.gameLoop());
+    startGameLoop() {
+        const gameLoop = () => {
+            this.update();
+            this.draw();
+            requestAnimationFrame(gameLoop);
+        };
+        gameLoop();
     }
 }
 
-// Запуск игры при загрузке страницы
+// Запуск игры
 window.addEventListener('load', () => {
-    console.log("Страница загружена");
-    new Game();
+    const game = new Game();
+    
+    // Для iOS: предотвращаем скроллинг и масштабирование
+    document.addEventListener('touchmove', (e) => {
+        if (e.target === document.body || e.target === document.documentElement) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Предотвращаем контекстное меню на мобильных
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Для iOS: фикс 100vh
+    const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    window.addEventListener('resize', setVH);
+    setVH();
 });
