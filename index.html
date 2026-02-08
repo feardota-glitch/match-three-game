@@ -2,79 +2,183 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Три в ряд</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .screen.hidden {
+            display: none;
+        }
+        
+        .content {
+            background: #2a2a3e;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        h1, h2 {
+            margin-bottom: 20px;
+            color: #ffd166;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #5656ff;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #4040ff;
+        }
+        
+        #gameHUD {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            z-index: 5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #gameHUD.hidden {
+            display: none;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            color: white;
+            font-size: 1.1rem;
+        }
+    </style>
 </head>
 <body>
     <!-- Canvas для игры -->
     <canvas id="gameCanvas"></canvas>
     
-    <!-- Все UI экраны поверх canvas -->
-    <div id="menuScreen" class="ui-screen active">
-        <div class="ui-content">
+    <!-- Игровой HUD -->
+    <div id="gameHUD" class="hidden">
+        <div class="stats">
+            <span>Очки: <span id="score">0</span></span>
+            <span>Ходы: <span id="moves">30</span></span>
+            <span>Время: <span id="timer">02:00</span></span>
+        </div>
+        <button id="pauseBtn">Пауза</button>
+    </div>
+    
+    <!-- Экран меню -->
+    <div id="menuScreen" class="screen">
+        <div class="content">
             <h1>ТРИ В РЯД</h1>
-            <div class="ui-buttons">
-                <button id="startBtn" class="ui-btn">Начать игру</button>
-                <button id="scoresBtn" class="ui-btn">Таблица рекордов</button>
-                <button id="instructionsBtn" class="ui-btn">Инструкция</button>
+            <div class="buttons">
+                <button id="startBtn">Начать игру</button>
+                <button id="scoresBtn">Таблица рекордов</button>
+                <button id="instructionsBtn">Инструкция</button>
             </div>
         </div>
     </div>
     
-    <div id="pauseScreen" class="ui-screen">
-        <div class="ui-content">
+    <!-- Экран паузы -->
+    <div id="pauseScreen" class="screen hidden">
+        <div class="content">
             <h2>ПАУЗА</h2>
-            <div class="ui-buttons">
-                <button id="resumeBtn" class="ui-btn">Продолжить</button>
-                <button id="restartBtn" class="ui-btn">Начать заново</button>
-                <button id="menuFromPauseBtn" class="ui-btn">В меню</button>
+            <div class="buttons">
+                <button id="resumeBtn">Продолжить</button>
+                <button id="restartBtn">Начать заново</button>
+                <button id="menuFromPauseBtn">В меню</button>
             </div>
         </div>
     </div>
     
-    <div id="scoresScreen" class="ui-screen">
-        <div class="ui-content">
+    <!-- Экран таблицы рекордов -->
+    <div id="scoresScreen" class="screen hidden">
+        <div class="content">
             <h2>ТАБЛИЦА РЕКОРДОВ</h2>
-            <div id="scoresList" class="scores-list"></div>
-            <button id="backFromScoresBtn" class="ui-btn">Назад</button>
+            <div id="scoresList" style="margin: 20px 0; min-height: 200px;">
+                <!-- Сюда будут добавляться рекорды -->
+            </div>
+            <button id="backFromScoresBtn">Назад</button>
         </div>
     </div>
     
-    <div id="gameOverScreen" class="ui-screen">
-        <div class="ui-content">
+    <!-- Экран окончания игры -->
+    <div id="gameOverScreen" class="screen hidden">
+        <div class="content">
             <h2>ИГРА ОКОНЧЕНА</h2>
-            <div class="final-score">Очки: <span id="finalScore">0</span></div>
-            <input type="text" id="playerName" placeholder="Ваше имя">
-            <div class="ui-buttons">
-                <button id="saveScoreBtn" class="ui-btn">Сохранить</button>
-                <button id="playAgainBtn" class="ui-btn">Играть снова</button>
-                <button id="menuFromGameOverBtn" class="ui-btn">В меню</button>
+            <p style="font-size: 1.5rem; margin: 20px 0;">Очки: <span id="finalScore">0</span></p>
+            <input type="text" id="playerName" placeholder="Ваше имя" 
+                   style="width: 100%; padding: 10px; margin: 10px 0; font-size: 1.2rem;">
+            <div class="buttons">
+                <button id="saveScoreBtn">Сохранить результат</button>
+                <button id="playAgainBtn">Играть снова</button>
+                <button id="menuFromGameOverBtn">В меню</button>
             </div>
         </div>
     </div>
     
-    <div id="instructionsScreen" class="ui-screen">
-        <div class="ui-content">
+    <!-- Экран инструкции -->
+    <div id="instructionsScreen" class="screen hidden">
+        <div class="content">
             <h2>ИНСТРУКЦИЯ</h2>
-            <div class="instructions">
-                <p>1. Кликните на фигуру, затем на соседнюю</p>
-                <p>2. Составляйте линии из 3+ одинаковых фигур</p>
-                <p>3. У вас 30 ходов и 2 минуты!</p>
+            <div style="text-align: left; margin: 20px 0;">
+                <p style="margin: 10px 0;">1. Кликните на фигуру</p>
+                <p style="margin: 10px 0;">2. Кликните на соседнюю фигуру для обмена</p>
+                <p style="margin: 10px 0;">3. Составляйте линии из 3+ одинаковых фигур</p>
+                <p style="margin: 10px 0;">4. У вас 30 ходов и 2 минуты!</p>
             </div>
-            <button id="backFromInstructionsBtn" class="ui-btn">Назад</button>
+            <button id="backFromInstructionsBtn">Назад</button>
         </div>
-    </div>
-    
-    <!-- Игровой HUD (всегда поверх canvas) -->
-    <div id="gameHUD" class="game-hud">
-        <div class="hud-stats">
-            <div class="stat">Очки: <span id="score">0</span></div>
-            <div class="stat">Ходы: <span id="moves">30</span></div>
-            <div class="stat">Время: <span id="timer">02:00</span></div>
-            <div id="comboDisplay" class="combo">Комбо: x1</div>
-        </div>
-        <button id="pauseBtn" class="hud-btn">Пауза</button>
     </div>
 
     <script src="game.js"></script>
